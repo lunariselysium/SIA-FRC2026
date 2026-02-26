@@ -19,7 +19,9 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.ShooterSubsystem;
+import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.commands.ShooterCommand;
+import frc.robot.commands.IntakeCommand;
 
 public class RobotContainer {
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
@@ -39,6 +41,7 @@ public class RobotContainer {
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
 
     private final ShooterSubsystem shooter = new ShooterSubsystem();
+    private final IntakeSubsystem intake = new IntakeSubsystem();
 
     private static final double kFalconVelocity = 50.0;
     private static final double kKrakenVelocity = 80.0;
@@ -80,6 +83,9 @@ public class RobotContainer {
 
         // Reset the field-centric heading on left bumper press.
         joystick.leftBumper().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric));
+
+        // Intake toggle with Y button
+        joystick.y().onTrue(new IntakeCommand(intake));
 
         // Shooter control with right bumper
         joystick.rightBumper().whileTrue(new ShooterCommand(shooter, kFalconVelocity, kKrakenVelocity));
