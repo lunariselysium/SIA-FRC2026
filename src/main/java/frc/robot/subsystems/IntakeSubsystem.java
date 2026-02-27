@@ -5,9 +5,11 @@ import static edu.wpi.first.units.Units.*;
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.controls.PositionVoltage;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class IntakeSubsystem extends SubsystemBase {
@@ -16,12 +18,11 @@ public class IntakeSubsystem extends SubsystemBase {
     private final PositionVoltage m_positionVoltage = new PositionVoltage(0).withSlot(0);
 
     private static final int kIntakeMotorId = 14;
-
     private double m_targetPosition = 0;
     private boolean m_isUp = false;
 
     private static final double kUpPosition = 0;
-    private static final double kDownPosition = 1.0;
+    private static final double kDownPosition = 13;
 
     public IntakeSubsystem() {
         m_intakeMotor = new TalonFX(kIntakeMotorId);
@@ -31,11 +32,12 @@ public class IntakeSubsystem extends SubsystemBase {
     private void configureMotor() {
         TalonFXConfiguration configs = new TalonFXConfiguration();
         
-        configs.Slot0.kP = 1;
-        configs.Slot0.kI = 0;
+        configs.Slot0.kP = 0.6;
+        configs.Slot0.kI = 0.05;
         configs.Slot0.kD = 0.1;
         configs.Voltage.PeakForwardVoltage = 8;
         configs.Voltage.PeakReverseVoltage = -8;
+        configs.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
 
         StatusCode status = StatusCode.StatusCodeNotInitialized;
         for (int i = 0; i < 5; ++i) {
@@ -65,12 +67,12 @@ public class IntakeSubsystem extends SubsystemBase {
         }
     }
 
-    public void raise() {
+    public void up() {
         setPosition(kUpPosition);
         m_isUp = true;
     }
 
-    public void lower() {
+    public void down() {
         setPosition(kDownPosition);
         m_isUp = false;
     }
@@ -93,5 +95,7 @@ public class IntakeSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
+        SmartDashboard.putNumber("Intake Position", getPosition());
+        SmartDashboard.putNumber("Intake Target", m_targetPosition);
     }
 }

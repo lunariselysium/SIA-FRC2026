@@ -6,19 +6,17 @@ import frc.robot.subsystems.ShooterSubsystem;
 
 public class ShooterCommand extends Command {
     private final ShooterSubsystem m_shooter;
-    private final double m_falconVelocity;
     private final double m_krakenVelocity;
 
-    public ShooterCommand(ShooterSubsystem shooter, double falconVelocity, double krakenVelocity) {
+    public ShooterCommand(ShooterSubsystem shooter, double krakenVelocity) {
         m_shooter = shooter;
-        m_falconVelocity = falconVelocity;
         m_krakenVelocity = krakenVelocity;
         addRequirements(m_shooter);
     }
 
     @Override
     public void initialize() {
-        m_shooter.setShooter(m_falconVelocity, m_krakenVelocity);
+        m_shooter.setShooter(m_krakenVelocity);
     }
 
     @Override

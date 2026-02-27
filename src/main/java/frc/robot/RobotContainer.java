@@ -20,8 +20,15 @@ import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
+import frc.robot.subsystems.IntakeRollerSubsystem;
+import frc.robot.subsystems.ShooterAngleSubsystem;
+import frc.robot.subsystems.FalconSubsystem;
 import frc.robot.commands.ShooterCommand;
 import frc.robot.commands.IntakeCommand;
+import frc.robot.commands.FalconCommand;
+import frc.robot.commands.IntakeRollerCommand;
+import frc.robot.commands.ShooterAngleIncreaseCommand;
+import frc.robot.commands.ShooterAngleDecreaseCommand;
 
 public class RobotContainer {
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
@@ -42,9 +49,13 @@ public class RobotContainer {
 
     private final ShooterSubsystem shooter = new ShooterSubsystem();
     private final IntakeSubsystem intake = new IntakeSubsystem();
+    private final FalconSubsystem falcon = new FalconSubsystem();
+    private final IntakeRollerSubsystem intakeRoller = new IntakeRollerSubsystem();
+    private final ShooterAngleSubsystem shooterAngle = new ShooterAngleSubsystem();
 
-    private static final double kFalconVelocity = 50.0;
+    private static final double kFalconVelocity = 110.0;
     private static final double kKrakenVelocity = 80.0;
+    private static final double kIntakeRollerVelocity = 200.0;
 
     public RobotContainer() {
         configureBindings();
@@ -82,13 +93,24 @@ public class RobotContainer {
         joystick.start().and(joystick.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
 
         // Reset the field-centric heading on left bumper press.
-        joystick.leftBumper().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric));
+        //joystick.leftBumper().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric));
 
         // Intake toggle with Y button
         joystick.y().onTrue(new IntakeCommand(intake));
 
+        // Intake roller control - left bumper for forward, left trigger for reverse
+        joystick.leftBumper().whileTrue(new IntakeRollerCommand(intakeRoller, kIntakeRollerVelocity));
+        joystick.leftTrigger(0.5).whileTrue(new IntakeRollerCommand(intakeRoller, -kIntakeRollerVelocity));
+
+        // Shooter angle control - D-pad up increases, D-pad down decreases
+        joystick.povUp().onTrue(new ShooterAngleIncreaseCommand(shooterAngle));
+        joystick.povDown().onTrue(new ShooterAngleDecreaseCommand(shooterAngle));
+
+        // Falcon control with right trigger (value > 0.5)
+        joystick.rightTrigger(0.5).whileTrue(new FalconCommand(falcon, kFalconVelocity));
+
         // Shooter control with right bumper
-        joystick.rightBumper().whileTrue(new ShooterCommand(shooter, kFalconVelocity, kKrakenVelocity));
+        joystick.rightBumper().whileTrue(new ShooterCommand(shooter, kKrakenVelocity));
 
         drivetrain.registerTelemetry(logger::telemeterize);
     }
