@@ -23,6 +23,7 @@ import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.IntakeRollerSubsystem;
 import frc.robot.subsystems.ShooterAngleSubsystem;
 import frc.robot.subsystems.FalconSubsystem;
+import frc.robot.subsystems.ShooterAngleDistanceSubsystem;
 import frc.robot.commands.ShooterCommand;
 import frc.robot.commands.IntakeCommand;
 import frc.robot.commands.FalconCommand;
@@ -52,6 +53,7 @@ public class RobotContainer {
     private final FalconSubsystem falcon = new FalconSubsystem();
     private final IntakeRollerSubsystem intakeRoller = new IntakeRollerSubsystem();
     private final ShooterAngleSubsystem shooterAngle = new ShooterAngleSubsystem();
+    private final ShooterAngleDistanceSubsystem shooterAngleDistance = new ShooterAngleDistanceSubsystem();
 
     private static final double kFalconVelocity = 110.0;
     private static final double kKrakenVelocity = 80.0;
