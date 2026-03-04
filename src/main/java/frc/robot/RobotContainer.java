@@ -21,15 +21,10 @@ import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.IntakeRollerSubsystem;
-import frc.robot.subsystems.ShooterAngleSubsystem;
-import frc.robot.subsystems.FalconSubsystem;
-import frc.robot.subsystems.ShooterAngleDistanceSubsystem;
-import frc.robot.commands.ShooterCommand;
+
+import frc.robot.commands.ShooterCommands;
 import frc.robot.commands.IntakeCommand;
-import frc.robot.commands.FalconCommand;
 import frc.robot.commands.IntakeRollerCommand;
-import frc.robot.commands.ShooterAngleIncreaseCommand;
-import frc.robot.commands.ShooterAngleDecreaseCommand;
 
 public class RobotContainer {
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
@@ -50,10 +45,7 @@ public class RobotContainer {
 
     private final ShooterSubsystem shooter = new ShooterSubsystem();
     private final IntakeSubsystem intake = new IntakeSubsystem();
-    private final FalconSubsystem falcon = new FalconSubsystem();
     private final IntakeRollerSubsystem intakeRoller = new IntakeRollerSubsystem();
-    private final ShooterAngleSubsystem shooterAngle = new ShooterAngleSubsystem();
-    private final ShooterAngleDistanceSubsystem shooterAngleDistance = new ShooterAngleDistanceSubsystem();
 
     private static final double kFalconVelocity = 110.0;
     private static final double kKrakenVelocity = 80.0;
@@ -104,17 +96,29 @@ public class RobotContainer {
         joystick.leftBumper().whileTrue(new IntakeRollerCommand(intakeRoller, kIntakeRollerVelocity));
         joystick.leftTrigger(0.5).whileTrue(new IntakeRollerCommand(intakeRoller, -kIntakeRollerVelocity));
 
-        // Shooter angle control - D-pad up increases, D-pad down decreases
-        joystick.povUp().onTrue(new ShooterAngleIncreaseCommand(shooterAngle));
-        joystick.povDown().onTrue(new ShooterAngleDecreaseCommand(shooterAngle));
+        // 1. Right Bumper (Button on top towards user) -> Run Feeder
+        joystick.rightBumper()
+            .whileTrue(ShooterCommands.runFeeder(shooter));
 
-        // Falcon control with right trigger (value > 0.5)
-        joystick.rightTrigger(0.5).whileTrue(new FalconCommand(falcon, kFalconVelocity));
+        // 2. POV Right (D-Pad Right) -> Increase Flywheel Speed
+        // We use onTrue so you have to click it to step up (prevents zooming to max speed instantly)
+        joystick.povRight()
+            .onTrue(ShooterCommands.increaseFlywheelSpeed(shooter));
 
-        // Shooter control with right bumper
-        joystick.rightBumper().whileTrue(new ShooterCommand(shooter, kKrakenVelocity));
+        // 3. POV Left (D-Pad Left) -> Decrease Flywheel Speed
+        joystick.povLeft()
+            .onTrue(ShooterCommands.decreaseFlywheelSpeed(shooter));
 
-        drivetrain.registerTelemetry(logger::telemeterize);
+        // 4. POV Up (D-Pad Up) -> Move Hood Up
+        // We use whileTrue so it moves smoothly while holding the button
+        joystick.povUp()
+            .whileTrue(ShooterCommands.moveHoodUp(shooter));
+
+        // 5. POV Down (D-Pad Down) -> Move Hood Down
+        joystick.povDown()
+            .whileTrue(ShooterCommands.moveHoodDown(shooter));
+
+            drivetrain.registerTelemetry(logger::telemeterize);
     }
 
     public Command getAutonomousCommand() {
