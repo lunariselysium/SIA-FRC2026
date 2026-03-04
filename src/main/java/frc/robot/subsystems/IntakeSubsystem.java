@@ -1,101 +1,152 @@
 package frc.robot.subsystems;
 
-import static edu.wpi.first.units.Units.*;
-
 import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.controls.PositionVoltage;
+import com.ctre.phoenix6.controls.VelocityVoltage;
+import com.ctre.phoenix6.controls.DutyCycleOut;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class IntakeSubsystem extends SubsystemBase {
-    private final TalonFX m_intakeMotor;
 
-    private final PositionVoltage m_positionVoltage = new PositionVoltage(0).withSlot(0);
+    // --- Hardware ---
+    private final TalonFX m_pivotMotor;
+    private final TalonFX m_rollerMotor;
 
-    private static final int kIntakeMotorId = 14;
-    private double m_targetPosition = 0;
-    private boolean m_isUp = false;
+    // --- Control Requests ---
+    private final PositionVoltage m_pivotControl = new PositionVoltage(0).withSlot(0);
+    private final VelocityVoltage m_rollerControl = new VelocityVoltage(0).withSlot(0);
+    private final DutyCycleOut m_stopControl = new DutyCycleOut(0);
 
-    private static final double kUpPosition = 0;
-    private static final double kDownPosition = 13;
+    // --- Constants & IDs ---
+    private static final int kPivotMotorId = 14;
+    private static final int kRollerMotorId = 13;
+
+    // --- Default Settings (Hardcoded but Modifiable) ---
+    // Pivot Positions (Rotations)
+    public double m_posUp = 0.0;
+    public double m_posDown = 13.0;
+    public double m_posOscillate = 6.0; // The "Partial" retract position
+
+    // Roller Speeds (Rotations Per Second)
+    public double m_rollerSpeed = 100.0; 
+
+    // State
+    private double m_targetPivotPosition = 0;
+    private double m_targetRollerVelocity = 0;
 
     public IntakeSubsystem() {
-        m_intakeMotor = new TalonFX(kIntakeMotorId);
-        configureMotor();
+        m_pivotMotor = new TalonFX(kPivotMotorId);
+        m_rollerMotor = new TalonFX(kRollerMotorId);
+
+        configurePivotMotor();
+        configureRollerMotor();
+
+        // Initialize Dashboard with defaults
+        SmartDashboard.putNumber("Intake/Pivot Up Pos", m_posUp);
+        SmartDashboard.putNumber("Intake/Pivot Down Pos", m_posDown);
+        SmartDashboard.putNumber("Intake/Pivot Oscillate Pos", m_posOscillate);
+        SmartDashboard.putNumber("Intake/Roller Speed RPS", m_rollerSpeed);
     }
 
-    private void configureMotor() {
+    private void configurePivotMotor() {
         TalonFXConfiguration configs = new TalonFXConfiguration();
         
-        configs.Slot0.kP = 0.6;
+        // Pivot PID
+        configs.Slot0.kP = 0.3;
         configs.Slot0.kI = 0.05;
         configs.Slot0.kD = 0.1;
+        
         configs.Voltage.PeakForwardVoltage = 8;
         configs.Voltage.PeakReverseVoltage = -8;
-        configs.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
+        configs.MotorOutput.Inverted = InvertedValue.Clockwise_Positive; 
 
-        StatusCode status = StatusCode.StatusCodeNotInitialized;
-        for (int i = 0; i < 5; ++i) {
-            status = m_intakeMotor.getConfigurator().apply(configs);
-            if (status.isOK()) break;
-        }
-        if (!status.isOK()) {
-            System.out.print("Could not apply configs, error code:" + status.toString());
-        }
-
-        m_intakeMotor.setNeutralMode(NeutralModeValue.Brake);
-        m_intakeMotor.setPosition(0);
+        m_pivotMotor.getConfigurator().apply(configs);
+        m_pivotMotor.setNeutralMode(NeutralModeValue.Brake);
+        m_pivotMotor.setPosition(0);
     }
 
-    public void setPosition(double position) {
-        m_targetPosition = position;
-        m_intakeMotor.setControl(m_positionVoltage.withPosition(position));
+    private void configureRollerMotor() {
+        TalonFXConfiguration config = new TalonFXConfiguration();
+        
+        // Roller PID
+        config.Slot0.kP = 0.4;
+        config.Slot0.kI = 0;
+        config.Slot0.kD = 0;
+        
+        config.Voltage.PeakForwardVoltage = 12;
+        config.Voltage.PeakReverseVoltage = -12;
+
+        m_rollerMotor.getConfigurator().apply(config);
+        m_rollerMotor.setNeutralMode(NeutralModeValue.Coast);
     }
 
-    public void toggle() {
-        if (m_isUp) {
-            setPosition(kDownPosition);
-            m_isUp = false;
+    // --- Pivot Methods ---
+    public void setPivotPosition(double position) {
+        m_targetPivotPosition = position;
+        m_pivotMotor.setControl(m_pivotControl.withPosition(position));
+    }
+
+    public void pivotUp() {
+        setPivotPosition(m_posUp);
+    }
+
+    public void pivotDown() {
+        setPivotPosition(m_posDown);
+    }
+
+    public void pivotOscillate() {
+        setPivotPosition(m_posOscillate);
+    }
+
+    public double getPivotPosition() {
+        return m_pivotMotor.getPosition().getValueAsDouble();
+    }
+
+    public void togglePivot() {
+        // If we are currently trying to go Down (or Oscillate), go Up.
+        // If we are Up, go Down.
+        if (Math.abs(m_targetPivotPosition - m_posUp) < 0.1) {
+            pivotDown();
         } else {
-            setPosition(kUpPosition);
-            m_isUp = true;
+            pivotUp();
         }
     }
 
-    public void up() {
-        setPosition(kUpPosition);
-        m_isUp = true;
+    // --- Roller Methods ---
+    public void setRollerVelocity(double rps) {
+        m_targetRollerVelocity = rps;
+        m_rollerMotor.setControl(m_rollerControl.withVelocity(rps));
     }
 
-    public void down() {
-        setPosition(kDownPosition);
-        m_isUp = false;
+    public void runRollers() {
+        setRollerVelocity(-m_rollerSpeed);
     }
 
-    public void stop() {
-        m_intakeMotor.setControl(new com.ctre.phoenix6.controls.DutyCycleOut(0));
+    public void stopRollers() {
+        m_targetRollerVelocity = 0;
+        m_rollerMotor.setControl(m_stopControl);
     }
 
-    public double getPosition() {
-        return m_intakeMotor.getPosition().getValueAsDouble();
-    }
-
-    public double getTargetPosition() {
-        return m_targetPosition;
-    }
-
-    public boolean isUp() {
-        return m_isUp;
+    public double getRollerVelocity() {
+        return m_rollerMotor.getVelocity().getValueAsDouble();
     }
 
     @Override
     public void periodic() {
-        SmartDashboard.putNumber("Intake Position", getPosition());
-        SmartDashboard.putNumber("Intake Target", m_targetPosition);
+        // Update variables from Dashboard (allows Tuning)
+        m_posUp = SmartDashboard.getNumber("Intake/Pivot Up Pos", m_posUp);
+        m_posDown = SmartDashboard.getNumber("Intake/Pivot Down Pos", m_posDown);
+        m_posOscillate = SmartDashboard.getNumber("Intake/Pivot Oscillate Pos", m_posOscillate);
+        m_rollerSpeed = SmartDashboard.getNumber("Intake/Roller Speed RPS", m_rollerSpeed);
+
+        // Telemetry
+        SmartDashboard.putNumber("Intake/Real Pivot Pos", getPivotPosition());
+        SmartDashboard.putNumber("Intake/Real Roller Vel", getRollerVelocity());
     }
 }

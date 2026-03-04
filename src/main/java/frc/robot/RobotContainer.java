@@ -20,11 +20,9 @@ import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
-import frc.robot.subsystems.IntakeRollerSubsystem;
 
 import frc.robot.commands.ShooterCommands;
-import frc.robot.commands.IntakeCommand;
-import frc.robot.commands.IntakeRollerCommand;
+import frc.robot.commands.IntakeOscillateCommand;
 
 public class RobotContainer {
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
@@ -45,7 +43,6 @@ public class RobotContainer {
 
     private final ShooterSubsystem shooter = new ShooterSubsystem();
     private final IntakeSubsystem intake = new IntakeSubsystem();
-    private final IntakeRollerSubsystem intakeRoller = new IntakeRollerSubsystem();
 
     private static final double kFalconVelocity = 110.0;
     private static final double kKrakenVelocity = 80.0;
@@ -89,12 +86,17 @@ public class RobotContainer {
         // Reset the field-centric heading on left bumper press.
         //joystick.leftBumper().onTrue(drivetrain.runOnce(drivetrain::seedFieldCentric));
 
-        // Intake toggle with Y button
-        joystick.y().onTrue(new IntakeCommand(intake));
+        // --- INTAKE BINDINGS ---
+        
+        // X Button: Toggle Intake
+        joystick.x().onTrue(Commands.runOnce(intake::togglePivot, intake));
 
-        // Intake roller control - left bumper for forward, left trigger for reverse
-        joystick.leftBumper().whileTrue(new IntakeRollerCommand(intakeRoller, kIntakeRollerVelocity));
-        joystick.leftTrigger(0.5).whileTrue(new IntakeRollerCommand(intakeRoller, -kIntakeRollerVelocity));
+        // Left Bumper: Run Roller
+        joystick.leftBumper().whileTrue(Commands.startEnd(intake::runRollers, intake::stopRollers, intake));
+
+        // Left Trigger: Oscillate/Shake Intake (Pivot Bobbing)
+        // Runs as long as trigger is held past 50%
+        joystick.leftTrigger(0.5).whileTrue(new IntakeOscillateCommand(intake));
 
         // 1. Right Bumper (Button on top towards user) -> Run Feeder
         joystick.rightBumper()
