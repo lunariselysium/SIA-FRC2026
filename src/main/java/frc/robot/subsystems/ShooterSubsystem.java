@@ -68,7 +68,7 @@ public class ShooterSubsystem extends SubsystemBase {
     
     private void configureFlywheels() {
         TalonFXConfiguration config = new TalonFXConfiguration();
-        config.Slot0.kP = 0.55;
+        config.Slot0.kP = 0.6;
         config.Slot0.kI = 0;
         config.Slot0.kD = 0;
         config.Voltage.PeakForwardVoltage = 12;
@@ -85,7 +85,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
     private void configureFeeders() {
         TalonFXConfiguration config = new TalonFXConfiguration();
-        config.Slot0.kP = 0.4;
+        config.Slot0.kP = 0.6;
         config.Slot0.kI = 0;
         config.Slot0.kD = 0;
         config.Voltage.PeakForwardVoltage = 12;

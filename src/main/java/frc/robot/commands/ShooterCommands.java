@@ -12,7 +12,7 @@ public class ShooterCommands {
     // How much to move hood per button press
     private static final double HOOD_STEP = 1.0; 
     // Speed to run the feeder
-    private static final double FEEDER_SPEED = 60.0; 
+    private static final double FEEDER_SPEED = 100.0; 
 
     private ShooterCommands() {
         // Private constructor because this is a factory class
