@@ -8,11 +8,11 @@ public class ShooterCommands {
 
     // --- TUNING CONSTANTS ---
     // How much to change speed per button press (e.g., 500 RPM)
-    private static final double FLYWHEEL_STEP =15.0; 
+    private static final double FLYWHEEL_STEP =5.0; 
     // How much to move hood per button press
-    private static final double HOOD_STEP = 1.0; 
+    private static final double HOOD_STEP = 0.5; 
     // Speed to run the feeder
-    private static final double FEEDER_SPEED = 100.0; 
+    private static final double FEEDER_SPEED = 60.0; 
 
     private ShooterCommands() {
         // Private constructor because this is a factory class
@@ -23,11 +23,19 @@ public class ShooterCommands {
      * Stops them when the command ends (button released).
      */
     public static Command runFeeder(ShooterSubsystem shooter) {
-        return Commands.startEnd(
-            () -> shooter.runFeeder(FEEDER_SPEED), // Start
-            () -> shooter.stopFeeder(),            // End
-            shooter
-        );
+        if(shooter.isFlywheelAtSpeed(10)){
+            return Commands.startEnd(
+                () -> shooter.runFeeder(FEEDER_SPEED), // Start
+                () -> shooter.stopFeeder(),            // End
+                shooter
+            );
+        } else {
+            return Commands.startEnd(
+                () -> shooter.stopFeeder(), 
+                () -> shooter.stopFeeder(),
+                shooter
+            );
+        }
     }
 
     /**
@@ -35,7 +43,7 @@ public class ShooterCommands {
      */
     public static Command increaseFlywheelSpeed(ShooterSubsystem shooter) {
         return Commands.runOnce(() -> {
-            double current = shooter.getFlywheelVelocity(); // Or getTargetFlywheelVelocity()
+            double current = shooter.getTargetFlywheelVelocity(); // Or getTargetFlywheelVelocity()
             shooter.setFlywheelVelocity(current + FLYWHEEL_STEP);
         }, shooter);
     }
@@ -45,7 +53,7 @@ public class ShooterCommands {
      */
     public static Command decreaseFlywheelSpeed(ShooterSubsystem shooter) {
         return Commands.runOnce(() -> {
-            double current = shooter.getFlywheelVelocity(); // Or getTargetFlywheelVelocity()
+            double current = shooter.getTargetFlywheelVelocity(); // Or getTargetFlywheelVelocity()
             // Don't let it go below 0
             double newSpeed = Math.max(0, current - FLYWHEEL_STEP);
             shooter.setFlywheelVelocity(newSpeed);

@@ -51,8 +51,8 @@ public class IntakeOscillateCommand extends Command {
 
     @Override
     public void end(boolean interrupted) {
-        m_intake.pivotUp();
-        m_intake.stopRollers();
+        m_intake.pivotDown();
+        // m_intake.stopRollers();
     }
 
     @Override

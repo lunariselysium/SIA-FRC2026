@@ -5,6 +5,7 @@ import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.PositionVoltage;
+import com.ctre.phoenix6.controls.VelocityTorqueCurrentFOC;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.hardware.CANrange;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -38,7 +39,8 @@ public class ShooterSubsystem extends SubsystemBase {
     private final CANrange m_hoodRange = new CANrange(kHoodCanRangeId);
 
     // --- CONTROLLERS ---
-    private final VelocityVoltage m_flywheelControl = new VelocityVoltage(0).withSlot(0);
+    private final VelocityVoltage m_flywheelControl
+         = new VelocityVoltage(0).withEnableFOC(false).withSlot(0);
     private final VelocityVoltage m_feederControl = new VelocityVoltage(0).withSlot(0);
     private final PositionVoltage m_hoodControl = new PositionVoltage(0).withSlot(0);
 
@@ -68,13 +70,25 @@ public class ShooterSubsystem extends SubsystemBase {
     
     private void configureFlywheels() {
         TalonFXConfiguration config = new TalonFXConfiguration();
-        config.Slot0.kP = 0.6;
-        config.Slot0.kI = 0;
-        config.Slot0.kD = 0;
+        config.Slot0.kS = 0.5;
+        config.Slot0.kV = 0.108;
+        config.Slot0.kP = 0.4;
+        config.Slot0.kI = 0.05;
+        config.Slot0.kD = 0.0;
+
         config.Voltage.PeakForwardVoltage = 12;
         config.Voltage.PeakReverseVoltage = -12;
 
+        // Stator limit is current in the motor itself (limits acceleration/torque)
+        config.CurrentLimits.StatorCurrentLimit = 100; // Max 60 Amps
+        config.CurrentLimits.StatorCurrentLimitEnable = true;
+        
+        // Supply limit is current drawn from the battery (keeps main breaker happy)
+        config.CurrentLimits.SupplyCurrentLimit = 50; 
+        config.CurrentLimits.SupplyCurrentLimitEnable = true;
+
         applyConfig(m_leftFlywheel, config, "Left Flywheel");
+        applyConfig(m_rightFlywheel, config, "Right Flywheel");
 
         // Set Right to follow Left, but spinning the opposite direction
         m_rightFlywheel.setControl(new Follower(kLeftFlywheelId, MotorAlignmentValue.Opposed));
@@ -85,7 +99,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
     private void configureFeeders() {
         TalonFXConfiguration config = new TalonFXConfiguration();
-        config.Slot0.kP = 0.6;
+        config.Slot0.kP = 0.7;
         config.Slot0.kI = 0;
         config.Slot0.kD = 0;
         config.Voltage.PeakForwardVoltage = 12;
@@ -186,6 +200,10 @@ public class ShooterSubsystem extends SubsystemBase {
 
     public double getFlywheelVelocity() {
         return m_leftFlywheel.getVelocity().getValueAsDouble();
+    }
+
+    public double getTargetFlywheelVelocity() {
+        return m_targetFlywheelVelocity;
     }
 
     public double getFeederVelocity() {
