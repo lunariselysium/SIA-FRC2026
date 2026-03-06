@@ -12,7 +12,7 @@ public class ShooterCommands {
     // How much to move hood per button press
     private static final double HOOD_STEP = 0.5; 
     // Speed to run the feeder
-    private static final double FEEDER_SPEED = 60.0; 
+    private static final double FEEDER_SPEED = 15.0; 
 
     private ShooterCommands() {
         // Private constructor because this is a factory class
@@ -23,19 +23,16 @@ public class ShooterCommands {
      * Stops them when the command ends (button released).
      */
     public static Command runFeeder(ShooterSubsystem shooter) {
-        if(shooter.isFlywheelAtSpeed(10)){
-            return Commands.startEnd(
-                () -> shooter.runFeeder(FEEDER_SPEED), // Start
-                () -> shooter.stopFeeder(),            // End
-                shooter
+        // 1. Wait until the flywheel is at speed
+        return Commands.waitUntil(() -> shooter.isFlywheelAtSpeed(3))
+            // 2. Once at speed, run the feeder until the command ends (button released)
+            .andThen(
+                Commands.startEnd(
+                    () -> shooter.runFeeder(FEEDER_SPEED),
+                    () -> shooter.stopFeeder(),
+                    shooter
+                )
             );
-        } else {
-            return Commands.startEnd(
-                () -> shooter.stopFeeder(), 
-                () -> shooter.stopFeeder(),
-                shooter
-            );
-        }
     }
 
     /**

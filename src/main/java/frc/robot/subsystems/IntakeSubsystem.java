@@ -31,10 +31,10 @@ public class IntakeSubsystem extends SubsystemBase {
     // Pivot Positions (Rotations)
     public double m_posUp = 0.0;
     public double m_posDown = 13.0;
-    public double m_posOscillate = 6.0; // The "Partial" retract position
+    public double m_posOscillate = 8.0; // The "Partial" retract position
 
     // Roller Speeds (Rotations Per Second)
-    public double m_rollerSpeed = 130.0; 
+    public double m_rollerSpeed = 140.0; 
 
     // State
     private double m_targetPivotPosition = 0;

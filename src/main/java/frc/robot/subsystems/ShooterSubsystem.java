@@ -88,7 +88,6 @@ public class ShooterSubsystem extends SubsystemBase {
         config.CurrentLimits.SupplyCurrentLimitEnable = true;
 
         applyConfig(m_leftFlywheel, config, "Left Flywheel");
-        applyConfig(m_rightFlywheel, config, "Right Flywheel");
 
         // Set Right to follow Left, but spinning the opposite direction
         m_rightFlywheel.setControl(new Follower(kLeftFlywheelId, MotorAlignmentValue.Opposed));
