@@ -64,8 +64,7 @@ public class ShooterCommands {
      */
     public static Command moveHoodUp(ShooterSubsystem shooter) {
         return Commands.run(() -> {
-            double current = shooter.getHoodPosition();
-            shooter.setHoodPosition(current + HOOD_STEP);
+            shooter.setHoodDistanceMm(shooter.getFilteredHoodDistance()+HOOD_STEP);
         }, shooter);
     }
 
@@ -74,8 +73,7 @@ public class ShooterCommands {
      */
     public static Command moveHoodDown(ShooterSubsystem shooter) {
         return Commands.run(() -> {
-            double current = shooter.getHoodPosition();
-            shooter.setHoodPosition(current - HOOD_STEP);
+            shooter.setHoodDistanceMm(shooter.getFilteredHoodDistance()-HOOD_STEP);
         }, shooter);
     }
     
