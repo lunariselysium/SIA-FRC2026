@@ -10,10 +10,15 @@ import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveRequest;
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.config.PIDConstants;
+import com.pathplanner.lib.config.RobotConfig;
+import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -44,6 +49,8 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private static final Rotation2d kRedAlliancePerspectiveRotation = Rotation2d.k180deg;
     /* Keep track if we've ever applied the operator perspective before or not */
     private boolean m_hasAppliedOperatorPerspective = false;
+
+    private final SwerveRequest.ApplyRobotSpeeds m_pathApplyRobotSpeeds = new SwerveRequest.ApplyRobotSpeeds();
 
     /* Swerve requests to apply during SysId characterization */
     private final SwerveRequest.SysIdSwerveTranslation m_translationCharacterization = new SwerveRequest.SysIdSwerveTranslation();
@@ -130,6 +137,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         if (Utils.isSimulation()) {
             startSimThread();
         }
+        setupPathPlanner(); 
     }
 
     /**
@@ -154,6 +162,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         if (Utils.isSimulation()) {
             startSimThread();
         }
+        setupPathPlanner(); 
     }
 
     /**
@@ -186,6 +195,7 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         if (Utils.isSimulation()) {
             startSimThread();
         }
+        setupPathPlanner(); 
     }
 
     /**
@@ -299,5 +309,52 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     @Override
     public Optional<Pose2d> samplePoseAt(double timestampSeconds) {
         return super.samplePoseAt(Utils.fpgaToCurrentTime(timestampSeconds));
+    }
+
+
+
+    private void setupPathPlanner() {
+        RobotConfig config;
+        try {
+            // This loads the settings from the PathPlanner GUI
+            config = RobotConfig.fromGUISettings();
+        } catch (Exception e) {
+            // If it fails (e.g. you haven't saved the GUI settings yet), don't crash, just print error
+            e.printStackTrace();
+            System.out.println("FAILED TO LOAD PATHPLANNER CONFIG. IS THE JSON FILE IN THE DEPLOY FOLDER?");
+            return; 
+        }
+
+        // Configure AutoBuilder
+        AutoBuilder.configure(
+                () -> this.getState().Pose, // Robot pose supplier (Phoenix 6 syntax)
+                this::resetPose,
+                this::getRobotRelativeSpeeds, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
+                (speeds, feedforwards) -> driveRobotRelative(speeds), // Method to drive
+                new PPHolonomicDriveController( 
+                        new PIDConstants(1.0, 0.0, 0.0), // Translation PID constants (TUNE THESE)
+                        new PIDConstants(1.0, 0.0, 0.0)  // Rotation PID constants (TUNE THESE)
+                ),
+                config, // The robot configuration loaded from above
+                () -> {
+                    // Flips path to Red Alliance if needed
+                    var alliance = DriverStation.getAlliance();
+                    if (alliance.isPresent()) {
+                        return alliance.get() == DriverStation.Alliance.Red;
+                    }
+                    return false;
+                },
+                this // Reference to this subsystem to set requirements
+        );
+    }
+
+    // PathPlanner needs to know how fast the robot is currently going
+    public edu.wpi.first.math.kinematics.ChassisSpeeds getRobotRelativeSpeeds() {
+        return this.getState().Speeds;
+    }
+
+    // PathPlanner needs to tell the robot how fast to go.
+    public void driveRobotRelative(edu.wpi.first.math.kinematics.ChassisSpeeds speeds) {
+        this.setControl(m_pathApplyRobotSpeeds.withSpeeds(speeds));
     }
 }
