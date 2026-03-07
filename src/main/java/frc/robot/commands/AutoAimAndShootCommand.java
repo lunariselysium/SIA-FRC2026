@@ -52,9 +52,10 @@ public class AutoAimAndShootCommand extends Command {
         // --- DATA FROM YOU ---
         // 2.0m -> 55 RPS, 82 Hood
         // 2.5m -> 50 RPS, 94 Hood
-        
+
+        m_rpmMap.put(1.5, 51.0);
         m_rpmMap.put(2.0, 55.0);
-        m_rpmMap.put(2.5, 50.0);
+        m_rpmMap.put(2.5, 58.0);
         
         // --- EXTRAPOLATION (Guessing to fill gaps) ---
         // Close range (Manual shot equivalent?)
@@ -65,8 +66,9 @@ public class AutoAimAndShootCommand extends Command {
         // m_rpmMap.put(4.0, 45.0);
 
         // m_hoodMap.put(1.0, 70.0);
+        m_hoodMap.put(1.5,82.0);
         m_hoodMap.put(2.0, 82.0);
-        m_hoodMap.put(2.5, 94.0);
+        m_hoodMap.put(2.5, 88.0);
         // m_hoodMap.put(3.0, 105.0);
         // m_hoodMap.put(4.0, 120.0);
     }
@@ -143,7 +145,7 @@ public class AutoAimAndShootCommand extends Command {
     public void end(boolean interrupted) {
         // Stop Everything
         m_drivetrain.setControl(m_driveReq.withVelocityX(0).withVelocityY(0).withRotationalRate(0));
-        m_shooter.stopEverything();
+        m_shooter.stopFeeder();
         SmartDashboard.putString("AutoAim/Status", "Ended");
     }
 
