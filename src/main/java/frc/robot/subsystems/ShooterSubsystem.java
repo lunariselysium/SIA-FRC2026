@@ -44,8 +44,8 @@ public class ShooterSubsystem extends SubsystemBase {
     private final VelocityVoltage m_feederControl = new VelocityVoltage(0).withSlot(0);
 
     private final edu.wpi.first.math.controller.PIDController m_hoodPID = 
-        new edu.wpi.first.math.controller.PIDController(0.002, 0, 0);
-    private static final double kHoodPIDkS = 0.02;
+        new edu.wpi.first.math.controller.PIDController(0.000245, 0.000004, 0.00010);
+    private static final double kHoodPIDkS = 0.03;
     private static final double kMaxHoodOutput = 0.20;
 
     // --- STATE VARIABLES ---
@@ -54,8 +54,12 @@ public class ShooterSubsystem extends SubsystemBase {
     
     // Distance Sensor Filter logic
     private static final double kMmPerMeter = 1000.0;
-    private static final double kAlpha = 0.05;
-    private double m_filteredHoodDistance = 0;
+
+    // 1D Kalman Filter Variables
+    private static final double kQ = 0.1;  // Process Noise: How fast the actual distance can physically change (Tune this)
+    private static final double kR = 500.0; // Measurement Noise: How "noisy" you expect the CANrange to be (Tune this)
+    private double m_kalmanP = 1.0;        // Error covariance estimate
+    private double m_kalmanX = 0.0;        // The filtered distance estimate
     private boolean m_firstReading = true;
 
     public ShooterSubsystem() {
@@ -199,17 +203,34 @@ public class ShooterSubsystem extends SubsystemBase {
         return m_feederMotor.getVelocity().getValueAsDouble();
     }
 
+    public double getHoodTargetDistance() {
+        return m_targetHoodDistanceMm;
+    }
+
     public double getFilteredHoodDistance() {
-        double rawDistance = m_hoodRange.getDistance().getValueAsDouble() * kMmPerMeter;
+        double rawDistance = Math.round(m_hoodRange.getDistance().getValueAsDouble() * kMmPerMeter);
         
+        // --- OUTLIER REJECTION ---
+        // If the sensor reads 0 or an impossibly far distance, ignore this loop entirely.
+        if (rawDistance <= 50.0 || rawDistance > 200.0) {
+            return m_kalmanX; // Just return the last known good estimate
+        }
+
         if (m_firstReading) {
-            m_filteredHoodDistance = rawDistance;
+            // Initialize the filter with the first reading
+            m_kalmanX = rawDistance;
             m_firstReading = false;
         } else {
-            m_filteredHoodDistance = kAlpha * rawDistance + (1 - kAlpha) * m_filteredHoodDistance;
+            // --- 1. Prediction Step ---
+            m_kalmanP = m_kalmanP + kQ;
+
+            // --- 2. Update Step ---
+            double kalmanGain = m_kalmanP / (m_kalmanP + kR);
+            m_kalmanX = m_kalmanX + kalmanGain * (rawDistance - m_kalmanX);
+            m_kalmanP = (1.0 - kalmanGain) * m_kalmanP;
         }
-        
-        return m_filteredHoodDistance;
+
+        return m_kalmanX;
     }
     
     /**
