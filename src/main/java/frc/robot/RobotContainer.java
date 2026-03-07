@@ -19,9 +19,11 @@ import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.ShooterSubsystem;
+import frc.robot.subsystems.VisionSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 
 import frc.robot.commands.ShooterCommands;
+import frc.robot.commands.AutoAimAndShootCommand;
 import frc.robot.commands.IntakeOscillateCommand;
 
 public class RobotContainer {
@@ -43,6 +45,7 @@ public class RobotContainer {
 
     private final ShooterSubsystem shooter = new ShooterSubsystem();
     private final IntakeSubsystem intake = new IntakeSubsystem();
+    private final VisionSubsystem vision = new VisionSubsystem(); 
 
     private static final double kFalconVelocity = 110.0;
     private static final double kKrakenVelocity = 80.0;
@@ -61,6 +64,16 @@ public class RobotContainer {
                 drive.withVelocityX(-joystick.getLeftY() * MaxSpeed) // Drive forward with negative Y (forward)
                     .withVelocityY(-joystick.getLeftX() * MaxSpeed) // Drive left with negative X (left)
                     .withRotationalRate(-joystick.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
+            )
+        );
+        
+        shooter.setDefaultCommand(
+            Commands.run(
+                () -> {
+                    // shooter.setFlywheelVelocity(50.0); // Idle speed
+                    shooter.stopFeeder();
+                }, 
+                shooter
             )
         );
 
@@ -121,6 +134,10 @@ public class RobotContainer {
             .whileTrue(ShooterCommands.moveHoodDown(shooter));
 
             drivetrain.registerTelemetry(logger::telemeterize);
+
+        joystick.rightTrigger(0.5).whileTrue(
+            new AutoAimAndShootCommand(drivetrain, shooter, vision)
+        );
     }
 
     public Command getAutonomousCommand() {
