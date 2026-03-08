@@ -19,7 +19,7 @@ public class ClimberSubsystem extends SubsystemBase {
     // You MUST tune these. 0 is usually fully retracted (robot up), 
     // and positive is extended (hook up).
     public static final double kPositionDown = 0.0; 
-    public static final double kPositionUp = 750.0; // Example: 80 rotations to reach the chain
+    public static final double kPositionUp = 745.0; // Example: 80 rotations to reach the chain
     public double targetPos = 0;
     
     // SAFETY LIMITS
@@ -51,7 +51,7 @@ public class ClimberSubsystem extends SubsystemBase {
 
         // 2. PID Settings (Slot 0)
         // Climbers need a high P to hold position against gravity
-        config.Slot0.kP = 1.0; // Start here. If it oscillates, lower it. If it sags, raise it.
+        config.Slot0.kP = 2.0; // Start here. If it oscillates, lower it. If it sags, raise it.
         config.Slot0.kI = 0.0;
         config.Slot0.kD = 0.05; // Small D helps stop oscillation
         config.Slot0.kV = 0.12; // Feedforward for speed
