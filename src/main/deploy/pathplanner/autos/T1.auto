@@ -1,0 +1,111 @@
+{
+  "version": "2025.0",
+  "command": {
+    "type": "sequential",
+    "data": {
+      "commands": [
+        {
+          "type": "path",
+          "data": {
+            "pathName": "T1-1"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "AlignRightTrench"
+          }
+        },
+        {
+          "type": "parallel",
+          "data": {
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "T1-2"
+                }
+              },
+              {
+                "type": "sequential",
+                "data": {
+                  "commands": [
+                    {
+                      "type": "named",
+                      "data": {
+                        "name": "TogglePivot"
+                      }
+                    },
+                    {
+                      "type": "named",
+                      "data": {
+                        "name": "RunRollers"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "T1-3"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "StopRollers"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "T1-4"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "AlignRightTrenchWithBack"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "T1-5"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 4.0
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "T1-6"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "AlignRightTrench"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "T1-7"
+          }
+        }
+      ]
+    }
+  },
+  "resetOdom": true,
+  "folder": null,
+  "choreoAuto": false
+}

@@ -19,6 +19,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 
 import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.auto.NamedCommands;
 import com.pathplanner.lib.commands.PathPlannerAuto;
 
 import frc.robot.generated.TunerConstants;
@@ -29,6 +30,7 @@ import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ClimberSubsystem;
 
 import frc.robot.commands.ShooterCommands;
+import frc.robot.commands.AlignToWallAndReset;
 import frc.robot.commands.AutoAimAndShootCommand;
 import frc.robot.commands.IntakeOscillateCommand;
 import frc.robot.commands.ClimberCommands;
@@ -62,6 +64,34 @@ public class RobotContainer {
     private static final double kIntakeRollerVelocity = 200.0;
 
     public RobotContainer() {
+        NamedCommands.registerCommand("AlignRightTrench", 
+            new AlignToWallAndReset(drivetrain, 
+                AlignToWallAndReset.RIGHT_SENSOR, 
+                0.5, 
+                null, 
+                0.31+0.28
+            ).withTimeout(5.0)
+        );
+        NamedCommands.registerCommand("AlignRightTrenchWithBack", 
+            new AlignToWallAndReset(drivetrain, 
+                AlignToWallAndReset.BACK_SENSOR, 
+                0.5, 
+                null, 
+                0.31+0.28
+            ).withTimeout(5.0)
+        );
+        NamedCommands.registerCommand("TogglePivot", 
+            Commands.runOnce(intake::togglePivot, intake)
+        );
+        NamedCommands.registerCommand("TogglePivot", 
+            Commands.runOnce(intake::togglePivot, intake)
+        );
+        NamedCommands.registerCommand("RunRollers", 
+            Commands.runOnce(intake::runRollers, intake)
+        );
+        NamedCommands.registerCommand("StopRollers", 
+            Commands.runOnce(intake::stopRollers, intake)
+        );
         autoChooser = AutoBuilder.buildAutoChooser();
         SmartDashboard.putData("Auto Chooser", autoChooser);
         configureBindings();

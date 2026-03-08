@@ -10,6 +10,10 @@ import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.swerve.SwerveDrivetrainConstants;
 import com.ctre.phoenix6.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.swerve.SwerveRequest;
+import com.ctre.phoenix6.hardware.CANrange;
+import com.ctre.phoenix6.configs.CANrangeConfiguration;
+import com.ctre.phoenix6.signals.UpdateModeValue;
+
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
@@ -28,6 +32,7 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
+import edu.wpi.first.math.filter.MedianFilter;
 
 import frc.robot.generated.TunerConstants.TunerSwerveDrivetrain;
 
@@ -51,6 +56,12 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
     private boolean m_hasAppliedOperatorPerspective = false;
 
     private final SwerveRequest.ApplyRobotSpeeds m_pathApplyRobotSpeeds = new SwerveRequest.ApplyRobotSpeeds();
+
+    private final CANrange m_rearSensor = new CANrange(1);
+    private final MedianFilter m_rearDistanceFilter = new MedianFilter(10);
+
+    private final CANrange m_rightSensor = new CANrange(2);
+    private final MedianFilter m_rightDisFilter = new MedianFilter(10);
 
     /* Swerve requests to apply during SysId characterization */
     private final SwerveRequest.SysIdSwerveTranslation m_translationCharacterization = new SwerveRequest.SysIdSwerveTranslation();
@@ -249,6 +260,10 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                 m_hasAppliedOperatorPerspective = true;
             });
         }
+
+        // Feed filter(s)
+        m_rearDistanceFilter.calculate(m_rearSensor.getDistance().getValueAsDouble());
+        m_rightDisFilter.calculate(m_rearSensor.getDistance().getValueAsDouble());
     }
 
     private void startSimThread() {
@@ -328,7 +343,12 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
         // Configure AutoBuilder
         AutoBuilder.configure(
                 () -> this.getState().Pose, // Robot pose supplier (Phoenix 6 syntax)
-                this::resetPose,
+                (pose) -> {
+                    // Prevent crash if PathPlanner doesn't know the starting pose
+                    if (pose != null) {
+                        this.resetPose(pose);
+                    }
+                },
                 this::getRobotRelativeSpeeds, // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
                 (speeds, feedforwards) -> driveRobotRelative(speeds), // Method to drive
                 new PPHolonomicDriveController( 
@@ -346,6 +366,14 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
                 },
                 this // Reference to this subsystem to set requirements
         );
+
+        CANrangeConfiguration rangeConfig = new CANrangeConfiguration();
+
+        rangeConfig.ToFParams.UpdateMode = UpdateModeValue.LongRangeUserFreq;
+        rangeConfig.ToFParams.UpdateFrequency = 20;
+
+        m_rearSensor.getConfigurator().apply(rangeConfig);
+        m_rightSensor.getConfigurator().apply(rangeConfig);
     }
 
     // PathPlanner needs to know how fast the robot is currently going
@@ -355,6 +383,21 @@ public class CommandSwerveDrivetrain extends TunerSwerveDrivetrain implements Su
 
     // PathPlanner needs to tell the robot how fast to go.
     public void driveRobotRelative(edu.wpi.first.math.kinematics.ChassisSpeeds speeds) {
+        this.setControl(m_pathApplyRobotSpeeds.withSpeeds(speeds));
+    }
+
+    // 1. Get the filtered CANrange distance
+    public double getRearSensorDistanceMeters() {
+        return m_rearDistanceFilter.calculate(m_rearSensor.getDistance().getValueAsDouble());
+    }
+
+    public double getRightSensorDistanceMeters() {
+        return m_rightDisFilter.calculate(m_rightSensor.getDistance().getValueAsDouble());
+    }
+
+    // 2. A method to do raw robot-centric driving (for our custom command)
+    public void driveRawRobotRelative(double velocityX, double velocityY, double rotationalRate) {
+        ChassisSpeeds speeds = new ChassisSpeeds(velocityX, velocityY, rotationalRate);
         this.setControl(m_pathApplyRobotSpeeds.withSpeeds(speeds));
     }
 }
