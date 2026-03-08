@@ -50,7 +50,7 @@ public class ShooterSubsystem extends SubsystemBase {
 
     // --- STATE VARIABLES ---
     private double m_targetFlywheelVelocity = 0;
-    private double m_targetHoodDistanceMm = 100; // CANrange data
+    private double m_targetHoodDistanceMm = 81; // CANrange data
     
     // Distance Sensor Filter logic
     private static final double kMmPerMeter = 1000.0;
