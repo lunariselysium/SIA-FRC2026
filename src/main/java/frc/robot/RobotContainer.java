@@ -26,10 +26,12 @@ import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.VisionSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
+import frc.robot.subsystems.ClimberSubsystem;
 
 import frc.robot.commands.ShooterCommands;
 import frc.robot.commands.AutoAimAndShootCommand;
 import frc.robot.commands.IntakeOscillateCommand;
+import frc.robot.commands.ClimberCommands;
 
 public class RobotContainer {
     private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
@@ -51,6 +53,7 @@ public class RobotContainer {
     private final ShooterSubsystem shooter = new ShooterSubsystem();
     private final IntakeSubsystem intake = new IntakeSubsystem();
     private final VisionSubsystem vision = new VisionSubsystem(); 
+    private final ClimberSubsystem climber = new ClimberSubsystem();
 
     private final SendableChooser<Command> autoChooser;
 
@@ -86,6 +89,10 @@ public class RobotContainer {
             )
         );
 
+        climber.setDefaultCommand(
+            ClimberCommands.manualMove(climber, () -> -joystick.getRightY())
+        );
+
         // Idle while the robot is disabled. This ensures the configured
         // neutral mode is applied to the drive motors while disabled.
         final var idle = new SwerveRequest.Idle();
@@ -93,10 +100,12 @@ public class RobotContainer {
             drivetrain.applyRequest(() -> idle).ignoringDisable(true)
         );
 
-        joystick.a().whileTrue(drivetrain.applyRequest(() -> brake));
-        joystick.b().whileTrue(drivetrain.applyRequest(() ->
-            point.withModuleDirection(new Rotation2d(-joystick.getLeftY(), -joystick.getLeftX()))
-        ));
+        // joystick.a().whileTrue(drivetrain.applyRequest(() -> brake));
+        // joystick.b().whileTrue(drivetrain.applyRequest(() ->
+        //     point.withModuleDirection(new Rotation2d(-joystick.getLeftY(), -joystick.getLeftX()))
+        // ));
+        joystick.a().onTrue(ClimberCommands.retractToBottom(climber));
+        joystick.b().onTrue(ClimberCommands.extendToTop(climber));
 
         // Run SysId routines when holding back/start and X/Y.
         // Note that each routine should be run exactly once in a single log.
@@ -106,7 +115,7 @@ public class RobotContainer {
         joystick.start().and(joystick.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
 
         // Reset the field-centric heading on y press.
-        joystick.y().onTrue((drivetrain.runOnce(drivetrain::seedFieldCentric)));
+        // joystick.y().onTrue((drivetrain.runOnce(drivetrain::seedFieldCentric)));
 
         // --- INTAKE BINDINGS ---
         
