@@ -5,15 +5,9 @@
     "data": {
       "commands": [
         {
-          "type": "path",
+          "type": "named",
           "data": {
-            "pathName": "L2-1"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "L2-2"
+            "name": "AutoAimAndShoot"
           }
         }
       ]

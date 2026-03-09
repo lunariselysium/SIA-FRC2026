@@ -26,14 +26,14 @@ public class AutoAimAndShootCommand extends Command {
 
     // --- PID CONTROLLER ---
     private final PIDController m_turnPID = new PIDController(0.01, 0.0, 0.001);
-    private final double kTurnToleranceDeg = 2.0;
+    private final double kTurnToleranceDeg = 3.0;
 
     // --- LOOKUP TABLES ---
     private final InterpolatingDoubleTreeMap m_rpmMap = new InterpolatingDoubleTreeMap();
     private final InterpolatingDoubleTreeMap m_hoodMap = new InterpolatingDoubleTreeMap();
 
     // --- FEEDER CONSTANT ---
-    private static final double FEEDER_SPEED_RPS = 15.0;
+    private static final double FEEDER_SPEED_RPS = 25.0;
 
     public AutoAimAndShootCommand(CommandSwerveDrivetrain drivetrain, ShooterSubsystem shooter, VisionSubsystem vision) {
         m_drivetrain = drivetrain;
@@ -53,8 +53,8 @@ public class AutoAimAndShootCommand extends Command {
         // 2.0m -> 55 RPS, 82 Hood
         // 2.5m -> 50 RPS, 94 Hood
 
-        m_rpmMap.put(1.5, 51.0);
-        m_rpmMap.put(2.0, 55.0);
+        m_rpmMap.put(1.5, 49.0);
+        m_rpmMap.put(2.0, 56.0);
         m_rpmMap.put(2.5, 58.0);
         
         // --- EXTRAPOLATION (Guessing to fill gaps) ---
@@ -67,8 +67,8 @@ public class AutoAimAndShootCommand extends Command {
 
         // m_hoodMap.put(1.0, 70.0);
         m_hoodMap.put(1.5,82.0);
-        m_hoodMap.put(2.0, 82.0);
-        m_hoodMap.put(2.5, 88.0);
+        m_hoodMap.put(2.0, 84.0);
+        m_hoodMap.put(2.5, 92.0);
         // m_hoodMap.put(3.0, 105.0);
         // m_hoodMap.put(4.0, 120.0);
     }
@@ -81,16 +81,18 @@ public class AutoAimAndShootCommand extends Command {
 
     @Override
     public void execute() {
-        // 1. SAFETY: If no target, stop everything
-        if (!m_vision.hasTarget()) {
-            m_drivetrain.setControl(m_driveReq.withVelocityX(0).withVelocityY(0).withRotationalRate(0));
-            m_shooter.stopFeeder();
-            // Optional: Idle flywheel at base speed?
-            m_shooter.setFlywheelVelocity(50); 
-            // m_shooter.setFlywheelVelocity(10);
-            SmartDashboard.putString("AutoAim/Status", "NO TARGET");
-            return;
-        }
+        // // 1. SAFETY: If no target, stop everything
+        // if (!m_vision.hasTarget()) {
+            // m_drivetrain.setControl(m_driveReq.withVelocityX(0).withVelocityY(0).withRotationalRate(0));
+            // m_shooter.stopFeeder();
+        //     // Optional: Idle flywheel at base speed?
+        //     m_shooter.setFlywheelVelocity(55); 
+        //     // m_shooter.setFlywheelVelocity(10);
+        //     SmartDashboard.putString("AutoAim/Status", "NO TARGET");
+        //     return;
+        // }
+        m_drivetrain.setControl(m_driveReq.withVelocityX(0).withVelocityY(0).withRotationalRate(0));
+        m_shooter.stopFeeder();
 
         // 2. GET DATA
         // Note: Using filtered values from your VisionSubsystem is CRITICAL here
@@ -99,7 +101,7 @@ public class AutoAimAndShootCommand extends Command {
 
         // 3. CALCULATE SETPOINTS
         // Clamp distance to avoid looking up crazy values if vision glitches to 0.0 or 50.0m
-        double safeDist = Math.max(1.5, Math.min(dist, 4.0));
+        double safeDist = Math.max(1.0, Math.min(dist, 4.0));
         
         double targetRPM = m_rpmMap.get(safeDist);
         double targetHood = m_hoodMap.get(safeDist);
@@ -125,7 +127,7 @@ public class AutoAimAndShootCommand extends Command {
         // 6. CHECK READY STATE
         boolean isAimed = m_turnPID.atSetpoint();
         boolean isSpedUp = m_shooter.isFlywheelAtSpeed(3.0); // 3 RPS tolerance
-        boolean isHooded = m_shooter.isHoodAtDistance(5.0); // 2mm tolerance
+        boolean isHooded = m_shooter.isHoodAtDistance(3.0); // 2mm tolerance
 
         SmartDashboard.putBoolean("AutoAim/Ready: Aim", isAimed);
         SmartDashboard.putBoolean("AutoAim/Ready: RPM", isSpedUp);

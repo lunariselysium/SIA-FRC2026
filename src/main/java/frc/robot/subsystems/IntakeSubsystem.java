@@ -128,6 +128,10 @@ public class IntakeSubsystem extends SubsystemBase {
         setRollerVelocity(-m_rollerSpeed);
     }
 
+    public void runRollersReverse(){
+        setRollerVelocity(m_rollerSpeed);
+    }
+
     public void stopRollers() {
         m_targetRollerVelocity = 0;
         m_rollerMotor.setControl(m_stopControl);

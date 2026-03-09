@@ -51,6 +51,7 @@ public class RobotContainer {
     private final CommandXboxController joystick = new CommandXboxController(0);
 
     public final CommandSwerveDrivetrain drivetrain = TunerConstants.createDrivetrain();
+    private boolean inverted = false;
 
     private final ShooterSubsystem shooter = new ShooterSubsystem();
     private final IntakeSubsystem intake = new IntakeSubsystem();
@@ -58,10 +59,6 @@ public class RobotContainer {
     private final ClimberSubsystem climber = new ClimberSubsystem();
 
     private final SendableChooser<Command> autoChooser;
-
-    private static final double kFalconVelocity = 110.0;
-    private static final double kKrakenVelocity = 80.0;
-    private static final double kIntakeRollerVelocity = 200.0;
 
     public RobotContainer() {
         NamedCommands.registerCommand("AlignRightTrench", 
@@ -80,8 +77,13 @@ public class RobotContainer {
                 0.31+0.28
             ).withTimeout(5.0)
         );
-        NamedCommands.registerCommand("TogglePivot", 
-            Commands.runOnce(intake::togglePivot, intake)
+        NamedCommands.registerCommand("AlignLeftTrench", 
+            new AlignToWallAndReset(drivetrain, 
+                AlignToWallAndReset.RIGHT_SENSOR, 
+                0.5, 
+                null, 
+                8.07-(0.31+0.28)
+            ).withTimeout(5.0)
         );
         NamedCommands.registerCommand("TogglePivot", 
             Commands.runOnce(intake::togglePivot, intake)
@@ -92,6 +94,16 @@ public class RobotContainer {
         NamedCommands.registerCommand("StopRollers", 
             Commands.runOnce(intake::stopRollers, intake)
         );
+        NamedCommands.registerCommand("AutoAimAndShootShort", 
+            new AutoAimAndShootCommand(drivetrain, shooter, vision)
+            .alongWith(new IntakeOscillateCommand(intake))
+            .withTimeout(3.0)
+        );
+        NamedCommands.registerCommand("AutoAimAndShoot", 
+            new AutoAimAndShootCommand(drivetrain, shooter, vision)
+            .alongWith(new IntakeOscillateCommand(intake))
+            .withTimeout(10.0)
+        );
         autoChooser = AutoBuilder.buildAutoChooser();
         SmartDashboard.putData("Auto Chooser", autoChooser);
         configureBindings();
@@ -101,12 +113,13 @@ public class RobotContainer {
         // Note that X is defined as forward according to WPILib convention,
         // and Y is defined as to the left according to WPILib convention.
         drivetrain.setDefaultCommand(
-            // Drivetrain will execute this command periodically
-            drivetrain.applyRequest(() ->
-                drive.withVelocityX(-joystick.getLeftY() * MaxSpeed) // Drive forward with negative Y (forward)
-                    .withVelocityY(-joystick.getLeftX() * MaxSpeed) // Drive left with negative X (left)
-                    .withRotationalRate(-joystick.getRightX() * MaxAngularRate) // Drive counterclockwise with negative X (left)
-            )
+            drivetrain.applyRequest(() -> {
+                // Drivetrain will execute this command periodically
+                double multiplier = inverted ? -1.0 : 1.0;
+                return drive.withVelocityX(-joystick.getLeftY() * MaxSpeed * multiplier)
+                            .withVelocityY(-joystick.getLeftX() * MaxSpeed * multiplier)
+                            .withRotationalRate(-joystick.getRightX() * MaxAngularRate);
+            })
         );
         
         shooter.setDefaultCommand(
@@ -123,8 +136,11 @@ public class RobotContainer {
             ClimberCommands.manualMove(climber, () -> -joystick.getRightY())
         );
 
-        joystick.leftBumper().whileTrue(ShooterCommands.runFeeder(shooter).alongWith(new IntakeOscillateCommand(intake)));
-        joystick.leftTrigger().whileTrue(ShooterCommands.runFeeder(shooter).alongWith(new IntakeOscillateCommand(intake)));
+        joystick.leftBumper().whileTrue(
+            new AutoAimAndShootCommand(drivetrain, shooter, vision)
+            .alongWith(new IntakeOscillateCommand(intake))
+        );
+        joystick.leftTrigger(0.5).whileTrue(getPassCommand());
         joystick.rightBumper().whileTrue(
             Commands.startEnd(
                 intake::runRollers,   // Runs when button is pressed
@@ -132,72 +148,97 @@ public class RobotContainer {
                 intake                // Requires the intake subsystem
             )
         );
+        joystick.rightTrigger(0.5).whileTrue(
+            Commands.startEnd(intake::runRollersReverse, intake::stopRollers, intake)
+            .alongWith(
+                ShooterCommands.runFeederReverse(shooter)
+            )
+        );
         joystick.x().onTrue(Commands.runOnce(intake::togglePivot, intake));
+        joystick.y().onTrue(Commands.runOnce(() -> inverted = !inverted));
 
 
-        // // Idle while the robot is disabled. This ensures the configured
-        // // neutral mode is applied to the drive motors while disabled.
-        // final var idle = new SwerveRequest.Idle();
-        // RobotModeTriggers.disabled().whileTrue(
-        //     drivetrain.applyRequest(() -> idle).ignoringDisable(true)
-        // );
+        // Idle while the robot is disabled. This ensures the configured
+        // neutral mode is applied to the drive motors while disabled.
+        final var idle = new SwerveRequest.Idle();
+        RobotModeTriggers.disabled().whileTrue(
+            drivetrain.applyRequest(() -> idle).ignoringDisable(true)
+        );
 
-        // // joystick.a().whileTrue(drivetrain.applyRequest(() -> brake));
-        // // joystick.b().whileTrue(drivetrain.applyRequest(() ->
-        // //     point.withModuleDirection(new Rotation2d(-joystick.getLeftY(), -joystick.getLeftX()))
-        // // ));
-        // joystick.a().onTrue(ClimberCommands.retractToBottom(climber));
-        // joystick.b().onTrue(ClimberCommands.extendToTop(climber));
+    //     // joystick.a().whileTrue(drivetrain.applyRequest(() -> brake));
+    //     // joystick.b().whileTrue(drivetrain.applyRequest(() ->
+    //     //     point.withModuleDirection(new Rotation2d(-joystick.getLeftY(), -joystick.getLeftX()))
+    //     // ));
+    //     joystick.a().onTrue(ClimberCommands.retractToBottom(climber));
+    //     joystick.b().onTrue(ClimberCommands.extendToTop(climber));
 
-        // // Run SysId routines when holding back/start and X/Y.
-        // // Note that each routine should be run exactly once in a single log.
-        // joystick.back().and(joystick.y()).whileTrue(drivetrain.sysIdDynamic(Direction.kForward));
-        // joystick.back().and(joystick.x()).whileTrue(drivetrain.sysIdDynamic(Direction.kReverse));
-        // joystick.start().and(joystick.y()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kForward));
-        // joystick.start().and(joystick.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
+    //     // Run SysId routines when holding back/start and X/Y.
+    //     // Note that each routine should be run exactly once in a single log.
+    //     joystick.back().and(joystick.y()).whileTrue(drivetrain.sysIdDynamic(Direction.kForward));
+    //     joystick.back().and(joystick.x()).whileTrue(drivetrain.sysIdDynamic(Direction.kReverse));
+    //     joystick.start().and(joystick.y()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kForward));
+    //     joystick.start().and(joystick.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
 
-        // // Reset the field-centric heading on y press.
-        // // joystick.y().onTrue((drivetrain.runOnce(drivetrain::seedFieldCentric)));
+    //     // Reset the field-centric heading on y press.
+    //     // joystick.y().onTrue((drivetrain.runOnce(drivetrain::seedFieldCentric)));
 
-        // // --- INTAKE BINDINGS ---
+    //     // --- INTAKE BINDINGS ---
         
-        // // X Button: Toggle Intake
-        // joystick.x().onTrue(Commands.runOnce(intake::togglePivot, intake));
+    //     // X Button: Toggle Intake
+    //     joystick.x().onTrue(Commands.runOnce(intake::togglePivot, intake));
 
-        // // Left Bumper: Run Roller
-        // joystick.leftBumper().toggleOnTrue(Commands.startEnd(intake::runRollers, intake::stopRollers, intake));
+    //     // Left Bumper: Run Roller
+    //     joystick.leftBumper().toggleOnTrue(Commands.startEnd(intake::runRollers, intake::stopRollers, intake));
 
-        // // Left Trigger: Oscillate/Shake Intake (Pivot Bobbing)
-        // // Runs as long as trigger is held past 50%
-        // joystick.leftTrigger(0.5).whileTrue(new IntakeOscillateCommand(intake));
+    //     // Left Trigger: Oscillate/Shake Intake (Pivot Bobbing)
+    //     // Runs as long as trigger is held past 50%
+    //     joystick.leftTrigger(0.5).whileTrue(new IntakeOscillateCommand(intake));
 
-        // // 1. Right Bumper (Button on top towards user) -> Run Feeder
-        // joystick.rightBumper()
-        //     .whileTrue(ShooterCommands.runFeeder(shooter));
+    //     // 1. Right Bumper (Button on top towards user) -> Run Feeder
+    //     joystick.rightBumper()
+    //         .whileTrue(ShooterCommands.runFeeder(shooter));
 
-        // // 2. POV Right (D-Pad Right) -> Increase Flywheel Speed
-        // // We use onTrue so you have to click it to step up (prevents zooming to max speed instantly)
-        // joystick.povRight()
-        //     .onTrue(ShooterCommands.increaseFlywheelSpeed(shooter));
+    //     // 2. POV Right (D-Pad Right) -> Increase Flywheel Speed
+    //     // We use onTrue so you have to click it to step up (prevents zooming to max speed instantly)
+    //     joystick.povRight()
+    //         .onTrue(ShooterCommands.increaseFlywheelSpeed(shooter));
 
-        // // 3. POV Left (D-Pad Left) -> Decrease Flywheel Speed
-        // joystick.povLeft()
-        //     .onTrue(ShooterCommands.decreaseFlywheelSpeed(shooter));
+    //     // 3. POV Left (D-Pad Left) -> Decrease Flywheel Speed
+    //     joystick.povLeft()
+    //         .onTrue(ShooterCommands.decreaseFlywheelSpeed(shooter));
 
-        // // 4. POV Up (D-Pad Up) -> Move Hood Up
-        // // We use whileTrue so it moves smoothly while holding the button
-        // joystick.povUp()
-        //     .whileTrue(ShooterCommands.moveHoodUp(shooter));
+    //     // 4. POV Up (D-Pad Up) -> Move Hood Up
+    //     // We use whileTrue so it moves smoothly while holding the button
+    //     joystick.povUp()
+    //         .whileTrue(ShooterCommands.moveHoodUp(shooter));
 
-        // // 5. POV Down (D-Pad Down) -> Move Hood Down
-        // joystick.povDown()
-        //     .whileTrue(ShooterCommands.moveHoodDown(shooter));
+    //     // 5. POV Down (D-Pad Down) -> Move Hood Down
+    //     joystick.povDown()
+    //         .whileTrue(ShooterCommands.moveHoodDown(shooter));
 
-        //     drivetrain.registerTelemetry(logger::telemeterize);
+            drivetrain.registerTelemetry(logger::telemeterize);
 
-        // joystick.rightTrigger(0.5).whileTrue(
-        //     new AutoAimAndShootCommand(drivetrain, shooter, vision)
-        // );
+    //     joystick.rightTrigger(0.5).whileTrue(
+    //         new AutoAimAndShootCommand(drivetrain, shooter, vision)
+    //     );
+    }
+
+    public Command getPassCommand() {
+        return Commands.sequence(
+            Commands.runOnce(() -> {
+                shooter.setFlywheelVelocity(60.0);
+                shooter.setHoodDistanceMm(100.0);
+            }, shooter),
+            Commands.waitUntil(() -> shooter.isHoodAtDistance(3) && shooter.isFlywheelAtSpeed(5)),
+            Commands.parallel(
+                ShooterCommands.runFeeder(shooter),
+                new IntakeOscillateCommand(intake)
+            )
+        ).finallyDo((interrupted) -> {
+            shooter.stopFeeder(); 
+            shooter.setFlywheelVelocity(50.0);
+            shooter.setHoodDistanceMm(82.0);
+        });
     }
 
     public Command getAutonomousCommand() {

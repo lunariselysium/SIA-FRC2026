@@ -25,6 +25,7 @@ public class IntakeOscillateCommand extends Command {
     @Override
     public void execute() {
         double currentPos = m_intake.getPivotPosition();
+        m_intake.runRollers();
 
         if (movingDown) {
             // We are moving towards DOWN. Check if we are there.
@@ -52,7 +53,7 @@ public class IntakeOscillateCommand extends Command {
     @Override
     public void end(boolean interrupted) {
         m_intake.pivotDown();
-        // m_intake.stopRollers();
+        m_intake.stopRollers();
     }
 
     @Override

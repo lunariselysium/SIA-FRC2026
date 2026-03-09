@@ -7,7 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "L1-1"
+            "pathName": "R1-1"
           }
         },
         {
@@ -19,13 +19,13 @@
         {
           "type": "path",
           "data": {
-            "pathName": "L1-2"
+            "pathName": "R1-2"
           }
         },
         {
           "type": "named",
           "data": {
-            "name": "AlignLeftTrench"
+            "name": "AlignRightTrench"
           }
         },
         {
@@ -35,7 +35,7 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "L1-3"
+                  "pathName": "R1-3"
                 }
               },
               {
@@ -52,24 +52,18 @@
           "data": {
             "commands": [
               {
-                "type": "named",
+                "type": "path",
                 "data": {
-                  "name": "StopRollers"
+                  "pathName": "R1-4"
                 }
               },
               {
                 "type": "named",
                 "data": {
-                  "name": "AlignLeftTrench"
+                  "name": "StopRollers"
                 }
               }
             ]
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "L1-4"
           }
         },
         {
