@@ -1,8 +1,12 @@
 package frc.robot.commands;
 
+import java.util.Optional;
+
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 
@@ -110,6 +114,22 @@ public class AlignToWallAndReset extends Command {
             // If the user passed a number, use that exact number!
             double finalX = (m_overrideX != null) ? m_overrideX : currentPose.getX();
             double finalY = (m_overrideY != null) ? m_overrideY : currentPose.getY();
+
+            // Check which alliance we are currently on
+            Optional<Alliance> alliance = DriverStation.getAlliance();
+            boolean isRed = alliance.isPresent() && alliance.get() == Alliance.Red;
+
+            final double FIELD_LENGTH = 16.541;
+            final double FIELD_WIDTH = 8.07;
+
+            if (m_overrideX != null) {
+                // If Red, mirror X across the center of the field
+                finalX = isRed ? (FIELD_LENGTH - m_overrideX) : m_overrideX;
+            }
+            if (m_overrideY != null) {
+                // If Red, mirror Y across the center of the field
+                finalY = isRed ? (FIELD_WIDTH - m_overrideY) : m_overrideY;
+            }
 
             // Reset the pose
             m_drivetrain.resetPose(new Pose2d(finalX, finalY, currentPose.getRotation()));
