@@ -24,7 +24,7 @@ public class VisionSubsystem extends SubsystemBase {
     private double m_filteredDist = 0.0;
 
     public double getTx() {
-        return m_filteredTx; // Return the smoothed value
+        return m_filteredTx+5; // Return the smoothed value
     }
 
     public double getDistance() {

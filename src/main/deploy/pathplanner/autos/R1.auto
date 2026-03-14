@@ -39,31 +39,37 @@
                 }
               },
               {
-                "type": "named",
+                "type": "sequential",
                 "data": {
-                  "name": "RunRollers"
+                  "commands": [
+                    {
+                      "type": "named",
+                      "data": {
+                        "name": "RunRollers"
+                      }
+                    },
+                    {
+                      "type": "wait",
+                      "data": {
+                        "waitTime": 4.4
+                      }
+                    },
+                    {
+                      "type": "named",
+                      "data": {
+                        "name": "StopRollers"
+                      }
+                    }
+                  ]
                 }
               }
             ]
           }
         },
         {
-          "type": "parallel",
+          "type": "path",
           "data": {
-            "commands": [
-              {
-                "type": "path",
-                "data": {
-                  "pathName": "R1-4"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "StopRollers"
-                }
-              }
-            ]
+            "pathName": "R1-4"
           }
         },
         {

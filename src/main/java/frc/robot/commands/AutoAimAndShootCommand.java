@@ -53,9 +53,9 @@ public class AutoAimAndShootCommand extends Command {
         // 2.0m -> 55 RPS, 82 Hood
         // 2.5m -> 50 RPS, 94 Hood
 
-        m_rpmMap.put(1.5, 49.0);
-        m_rpmMap.put(2.0, 56.0);
-        m_rpmMap.put(2.5, 58.0);
+        m_rpmMap.put(1.5, 49.0*1.12);
+        m_rpmMap.put(2.0, 56.0*1.02);
+        m_rpmMap.put(2.5, 58.0*0.95);
         
         // --- EXTRAPOLATION (Guessing to fill gaps) ---
         // Close range (Manual shot equivalent?)

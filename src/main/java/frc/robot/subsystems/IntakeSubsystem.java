@@ -31,7 +31,7 @@ public class IntakeSubsystem extends SubsystemBase {
     // Pivot Positions (Rotations)
     public double m_posUp = 0.0;
     public double m_posDown = 13.0;
-    public double m_posOscillate = 8.0; // The "Partial" retract position
+    public double m_posOscillate = 6.0; // The "Partial" retract position
 
     // Roller Speeds (Rotations Per Second)
     public double m_rollerSpeed = 140.0; 
@@ -58,7 +58,7 @@ public class IntakeSubsystem extends SubsystemBase {
         TalonFXConfiguration configs = new TalonFXConfiguration();
         
         // Pivot PID
-        configs.Slot0.kP = 0.5;
+        configs.Slot0.kP = 0.8;
         configs.Slot0.kI = 0.05;
         configs.Slot0.kD = 0.1;
         
@@ -83,7 +83,7 @@ public class IntakeSubsystem extends SubsystemBase {
         config.Voltage.PeakReverseVoltage = -12;
 
         m_rollerMotor.getConfigurator().apply(config);
-        m_rollerMotor.setNeutralMode(NeutralModeValue.Coast);
+        m_rollerMotor.setNeutralMode(NeutralModeValue.Brake);
     }
 
     // --- Pivot Methods ---

@@ -44,7 +44,7 @@ public class ShooterSubsystem extends SubsystemBase {
     private final VelocityVoltage m_feederControl = new VelocityVoltage(0).withSlot(0);
 
     private final edu.wpi.first.math.controller.PIDController m_hoodPID = 
-        new edu.wpi.first.math.controller.PIDController(0.00028, 0.000001, 0.00010);
+        new edu.wpi.first.math.controller.PIDController(0.00028, 0.00000, 0.00010);
     private static final double kHoodPIDkS = 0.03;
     private static final double kMaxHoodOutput = 0.20;
 

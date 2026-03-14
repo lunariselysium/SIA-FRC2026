@@ -12,6 +12,8 @@ import com.ctre.phoenix6.swerve.SwerveRequest;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
@@ -36,7 +38,7 @@ import frc.robot.commands.IntakeOscillateCommand;
 import frc.robot.commands.ClimberCommands;
 
 public class RobotContainer {
-    private double MaxSpeed = 1.0 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
+    private double MaxSpeed = 0.75 * TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
     private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
 
     /* Setting up bindings for necessary control of the swerve drive platform */
@@ -64,25 +66,25 @@ public class RobotContainer {
         NamedCommands.registerCommand("AlignRightTrench", 
             new AlignToWallAndReset(drivetrain, 
                 AlignToWallAndReset.RIGHT_SENSOR, 
-                0.5, 
+                0.26, 
                 null, 
-                0.31+0.28
+                0.33+0.26
             ).withTimeout(5.0)
         );
         NamedCommands.registerCommand("AlignRightTrenchWithBack", 
             new AlignToWallAndReset(drivetrain, 
                 AlignToWallAndReset.BACK_SENSOR, 
-                0.5, 
+                0.26, 
                 null, 
-                0.31+0.28
+                0.33+0.26
             ).withTimeout(5.0)
         );
         NamedCommands.registerCommand("AlignLeftTrench", 
             new AlignToWallAndReset(drivetrain, 
                 AlignToWallAndReset.RIGHT_SENSOR, 
-                0.5, 
+                0.26, 
                 null, 
-                8.07-(0.31+0.28)
+                8.07-(0.33+0.26)
             ).withTimeout(5.0)
         );
         NamedCommands.registerCommand("TogglePivot", 
@@ -96,12 +98,19 @@ public class RobotContainer {
         );
         NamedCommands.registerCommand("AutoAimAndShootShort", 
             new AutoAimAndShootCommand(drivetrain, shooter, vision)
-            .alongWith(new IntakeOscillateCommand(intake))
+            .alongWith(
+                new IntakeOscillateCommand(intake)
+            )
             .withTimeout(3.0)
         );
         NamedCommands.registerCommand("AutoAimAndShoot", 
             new AutoAimAndShootCommand(drivetrain, shooter, vision)
-            .alongWith(new IntakeOscillateCommand(intake))
+            .alongWith(
+                new SequentialCommandGroup(
+                    new WaitCommand(1.5),
+                    new IntakeOscillateCommand(intake)
+                )
+            )
             .withTimeout(10.0)
         );
         autoChooser = AutoBuilder.buildAutoChooser();
@@ -132,13 +141,18 @@ public class RobotContainer {
             )
         );
 
-        climber.setDefaultCommand(
-            ClimberCommands.manualMove(climber, () -> -joystick.getRightY())
-        );
+        // climber.setDefaultCommand(
+        //     ClimberCommands.manualMove(climber, () -> -joystick.getRightY())
+        // );
 
         joystick.leftBumper().whileTrue(
             new AutoAimAndShootCommand(drivetrain, shooter, vision)
-            .alongWith(new IntakeOscillateCommand(intake))
+            .alongWith(
+                new SequentialCommandGroup(
+                    new WaitCommand(1.5),
+                    new IntakeOscillateCommand(intake)
+                )
+            )
         );
         joystick.leftTrigger(0.5).whileTrue(getPassCommand());
         joystick.rightBumper().whileTrue(
@@ -226,17 +240,22 @@ public class RobotContainer {
     public Command getPassCommand() {
         return Commands.sequence(
             Commands.runOnce(() -> {
-                shooter.setFlywheelVelocity(60.0);
-                shooter.setHoodDistanceMm(100.0);
+                shooter.setFlywheelVelocity(70.0*0.8);
+                // shooter.setFlywheelVelocity(20.0);
+
+                shooter.setHoodDistanceMm(110.0);
             }, shooter),
-            Commands.waitUntil(() -> shooter.isHoodAtDistance(3) && shooter.isFlywheelAtSpeed(5)),
+            Commands.waitUntil(() -> shooter.isHoodAtDistance(15) && shooter.isFlywheelAtSpeed(5)),
             Commands.parallel(
-                ShooterCommands.runFeeder(shooter),
+                // ShooterCommands.runFeeder(shooter),
+                shooter.run(() -> shooter.runFeeder(100)), 
                 new IntakeOscillateCommand(intake)
             )
         ).finallyDo((interrupted) -> {
             shooter.stopFeeder(); 
             shooter.setFlywheelVelocity(50.0);
+            // shooter.setFlywheelVelocity(20.0);
+
             shooter.setHoodDistanceMm(82.0);
         });
     }

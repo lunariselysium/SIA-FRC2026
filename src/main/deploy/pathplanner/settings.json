@@ -4,6 +4,7 @@
   "holonomicMode": true,
   "pathFolders": [
     "L1",
+    "M1",
     "R1",
     "T1"
   ],
