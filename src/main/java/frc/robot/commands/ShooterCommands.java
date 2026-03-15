@@ -3,6 +3,7 @@ package frc.robot.commands;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.subsystems.ShooterSubsystem;
+import frc.robot.subsystems.ShooterSubsystem.HoodPosition;
 
 public class ShooterCommands {
 
@@ -12,7 +13,7 @@ public class ShooterCommands {
     // How much to move hood per button press
     private static final double HOOD_STEP = 0.5; 
     // Speed to run the feeder
-    private static final double FEEDER_SPEED = 40.0; 
+    private static final double FEEDER_SPEED = 30.0; 
 
     private ShooterCommands() {
         // Private constructor because this is a factory class
@@ -72,7 +73,7 @@ public class ShooterCommands {
      */
     public static Command moveHoodUp(ShooterSubsystem shooter) {
         return Commands.run(() -> {
-            shooter.setHoodDistanceMm(shooter.getHoodTargetDistance()+HOOD_STEP);
+            shooter.setHoodState(HoodPosition.HIGH);
         }, shooter);
     }
 
@@ -81,7 +82,7 @@ public class ShooterCommands {
      */
     public static Command moveHoodDown(ShooterSubsystem shooter) {
         return Commands.run(() -> {
-            shooter.setHoodDistanceMm(shooter.getHoodTargetDistance()-HOOD_STEP);
+            shooter.setHoodState(HoodPosition.LOW);
         }, shooter);
     }
     

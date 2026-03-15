@@ -58,7 +58,7 @@ public class IntakeSubsystem extends SubsystemBase {
         TalonFXConfiguration configs = new TalonFXConfiguration();
         
         // Pivot PID
-        configs.Slot0.kP = 0.8;
+        configs.Slot0.kP = 0.6;
         configs.Slot0.kI = 0.05;
         configs.Slot0.kD = 0.1;
         

@@ -4,8 +4,8 @@ import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.Follower;
+import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.controls.VelocityVoltage;
-import com.ctre.phoenix6.hardware.CANrange;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
@@ -14,10 +14,17 @@ import com.ctre.phoenix6.signals.NeutralModeValue;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
-import edu.wpi.first.math.MathUtil;;
-
 public class ShooterSubsystem extends SubsystemBase {
     
+    // --- SETPOINTS (IN ROTATIONS) ---
+    private static final double kHoodPositionLow = 0.0;  
+    private static final double kHoodPositionHigh = 5.5; 
+
+    public enum HoodPosition {
+        LOW,
+        HIGH
+    }
+
     // --- MOTOR CONSTANTS ---
     private static final int kLeftFlywheelId = 9;
     private static final int kRightFlywheelId = 10;
@@ -26,7 +33,6 @@ public class ShooterSubsystem extends SubsystemBase {
     private static final int kShooterKrakenId = 11; // this is the 'Indexer' right before flywheels
     
     private static final int kHoodMotorId = 15;
-    private static final int kHoodCanRangeId = 0;
 
     // --- HARDWARE ---
     private final TalonFX m_leftFlywheel = new TalonFX(kLeftFlywheelId);
@@ -36,31 +42,19 @@ public class ShooterSubsystem extends SubsystemBase {
     private final TalonFX m_indexerMotor = new TalonFX(kShooterKrakenId);
     
     private final TalonFX m_hoodMotor = new TalonFX(kHoodMotorId);
-    private final CANrange m_hoodRange = new CANrange(kHoodCanRangeId);
 
     // --- CONTROLLERS ---
     private final VelocityVoltage m_flywheelControl
          = new VelocityVoltage(0).withEnableFOC(true).withSlot(0);
     private final VelocityVoltage m_feederControl = new VelocityVoltage(0).withSlot(0);
-
-    private final edu.wpi.first.math.controller.PIDController m_hoodPID = 
-        new edu.wpi.first.math.controller.PIDController(0.00028, 0.00000, 0.00010);
-    private static final double kHoodPIDkS = 0.03;
-    private static final double kMaxHoodOutput = 0.20;
+    
+    // Position control request for the Hood
+    private final PositionVoltage m_hoodControl = new PositionVoltage(0).withSlot(0);
 
     // --- STATE VARIABLES ---
     private double m_targetFlywheelVelocity = 0;
-    private double m_targetHoodDistanceMm = 81; // CANrange data
-    
-    // Distance Sensor Filter logic
-    private static final double kMmPerMeter = 1000.0;
-
-    // 1D Kalman Filter Variables
-    private static final double kQ = 0.1;  // Process Noise: How fast the actual distance can physically change (Tune this)
-    private static final double kR = 500.0; // Measurement Noise: How "noisy" you expect the CANrange to be (Tune this)
-    private double m_kalmanP = 1.0;        // Error covariance estimate
-    private double m_kalmanX = 0.0;        // The filtered distance estimate
-    private boolean m_firstReading = true;
+    private double m_targetHoodPosition = kHoodPositionLow;
+    private HoodPosition m_currentHoodState = HoodPosition.LOW;
 
     public ShooterSubsystem() {
         configureFlywheels();
@@ -83,17 +77,14 @@ public class ShooterSubsystem extends SubsystemBase {
         config.Voltage.PeakForwardVoltage = 12;
         config.Voltage.PeakReverseVoltage = -12;
 
-        // Stator limit is current in the motor itself (limits acceleration/torque)
-        config.CurrentLimits.StatorCurrentLimit = 100; // Max 60 Amps
+        config.CurrentLimits.StatorCurrentLimit = 100;
         config.CurrentLimits.StatorCurrentLimitEnable = true;
         
-        // Supply limit is current drawn from the battery (keeps main breaker happy)
         config.CurrentLimits.SupplyCurrentLimit = 50; 
         config.CurrentLimits.SupplyCurrentLimitEnable = true;
 
         applyConfig(m_leftFlywheel, config, "Left Flywheel");
 
-        // Set Right to follow Left, but spinning the opposite direction
         m_rightFlywheel.setControl(new Follower(kLeftFlywheelId, MotorAlignmentValue.Opposed));
 
         m_leftFlywheel.setNeutralMode(NeutralModeValue.Coast);
@@ -118,16 +109,25 @@ public class ShooterSubsystem extends SubsystemBase {
 
     private void configureHood() {
         TalonFXConfiguration config = new TalonFXConfiguration();
+        
+        // --- HOOD PID TUNING ---
+        config.Slot0.kP = 1.2; 
+        config.Slot0.kI = 0.0;
+        config.Slot0.kD = 0.0;
+        config.Slot0.kS = 0.0; // Static friction feedforward if needed
+
         config.Voltage.PeakForwardVoltage = 8;
         config.Voltage.PeakReverseVoltage = -8;
         config.MotorOutput.Inverted = InvertedValue.CounterClockwise_Positive;
         config.MotorOutput.NeutralMode = NeutralModeValue.Brake;
 
         applyConfig(m_hoodMotor, config, "Hood Motor");
-        applyConfig(m_hoodMotor, config, "Hood Motor");
 
         m_hoodMotor.setNeutralMode(NeutralModeValue.Brake);
-        m_hoodMotor.setPosition(0);
+        
+        // IMPORTANT: Assuming the hood is at the "0" (LOW) position when the robot turns on.
+        // If it's not, you'll need a way to zero it (e.g., hard stop zeroing sequence or a limit switch).
+        m_hoodMotor.setPosition(0); 
     }
 
     private void applyConfig(TalonFX motor, TalonFXConfiguration config, String name) {
@@ -155,10 +155,19 @@ public class ShooterSubsystem extends SubsystemBase {
     }
 
     /**
-     * Sets the target position for the Hood.
+     * Sets the hood to one of the predefined states (LOW or HIGH).
      */
-    public void setHoodDistanceMm(double distanceMm) {
-        m_targetHoodDistanceMm = distanceMm;
+    public void setHoodState(HoodPosition position) {
+        m_currentHoodState = position;
+        
+        if (position == HoodPosition.LOW) {
+            m_targetHoodPosition = kHoodPositionLow;
+        } else {
+            m_targetHoodPosition = kHoodPositionHigh;
+        }
+
+        // Send the position request to the motor controller
+        m_hoodMotor.setControl(m_hoodControl.withPosition(m_targetHoodPosition));
     }
 
     /**
@@ -203,81 +212,34 @@ public class ShooterSubsystem extends SubsystemBase {
         return m_feederMotor.getVelocity().getValueAsDouble();
     }
 
-    public double getHoodTargetDistance() {
-        return m_targetHoodDistanceMm;
-    }
-
-    public double getFilteredHoodDistance() {
-        double rawDistance = Math.round(m_hoodRange.getDistance().getValueAsDouble() * kMmPerMeter);
-        
-        // --- OUTLIER REJECTION ---
-        // If the sensor reads 0 or an impossibly far distance, ignore this loop entirely.
-        if (rawDistance <= 50.0 || rawDistance > 200.0) {
-            return m_kalmanX; // Just return the last known good estimate
-        }
-
-        if (m_firstReading) {
-            // Initialize the filter with the first reading
-            m_kalmanX = rawDistance;
-            m_firstReading = false;
-        } else {
-            // --- 1. Prediction Step ---
-            m_kalmanP = m_kalmanP + kQ;
-
-            // --- 2. Update Step ---
-            double kalmanGain = m_kalmanP / (m_kalmanP + kR);
-            m_kalmanX = m_kalmanX + kalmanGain * (rawDistance - m_kalmanX);
-            m_kalmanP = (1.0 - kalmanGain) * m_kalmanP;
-        }
-
-        return m_kalmanX;
+    /**
+     * Gets the current hood position in rotations.
+     */
+    public double getHoodPosition() {
+        return m_hoodMotor.getPosition().getValueAsDouble();
     }
     
-    /**
-     * Checks if the flywheels are spun up to the target speed.
-     */
     public boolean isFlywheelAtSpeed(double tolerance) {
         return Math.abs(getFlywheelVelocity() - m_targetFlywheelVelocity) <= tolerance;
     }
 
     /**
      * Checks if the hood is at the requested position.
+     * @param toleranceRotations acceptable error in motor rotations
      */
-    public boolean isHoodAtDistance(double toleranceMm) {
-        return Math.abs(getFilteredHoodDistance() - m_targetHoodDistanceMm) <= toleranceMm;
+    public boolean isHoodAtPosition(double toleranceRotations) {
+        return Math.abs(getHoodPosition() - m_targetHoodPosition) <= toleranceRotations;
     }
-
 
     @Override
     public void periodic() {
-        // 1. Get current distance
-        double currentMm = getFilteredHoodDistance();
-
-        // 2. Calculate PID output (Voltage or % output)
-        double pidOutput = m_hoodPID.calculate(currentMm, m_targetHoodDistanceMm);
-
-        // 3. Add Feedforward (kS) to overcome friction
-        // If PID wants to go positive, add kS. If negative, subtract kS.
-        if (pidOutput > 0.001) {
-            pidOutput += kHoodPIDkS;
-        } else if (pidOutput < -0.001) {
-            pidOutput -= kHoodPIDkS;
-        }
-
-        // 4. Clamp output
-        double clampedOutput = MathUtil.clamp(pidOutput, -kMaxHoodOutput, kMaxHoodOutput);
-        
-        // 5. Apply to motor
-        m_hoodMotor.setControl(new DutyCycleOut(clampedOutput));
-
         SmartDashboard.putNumber("Shooter/Flywheel Vel", getFlywheelVelocity());
         SmartDashboard.putNumber("Shooter/Flywheel Target", m_targetFlywheelVelocity);
         
-        SmartDashboard.putNumber("Shooter/Hood Position", getFilteredHoodDistance());
-        SmartDashboard.putNumber("Shooter/Hood Target", m_targetHoodDistanceMm);
+        SmartDashboard.putNumber("Shooter/Hood Position (rots)", getHoodPosition());
+        SmartDashboard.putNumber("Shooter/Hood Target (rots)", m_targetHoodPosition);
+        SmartDashboard.putString("Shooter/Hood State", m_currentHoodState.name());
 
         SmartDashboard.putNumber("Feeder Vel", getFeederVelocity());
-        
-        SmartDashboard.putNumber("Shooter/Hood Dist (mm)", getFilteredHoodDistance());
     }
 }

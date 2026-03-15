@@ -28,6 +28,7 @@ import frc.robot.generated.TunerConstants;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.VisionSubsystem;
+import frc.robot.subsystems.ShooterSubsystem.HoodPosition;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ClimberSubsystem;
 
@@ -141,9 +142,9 @@ public class RobotContainer {
             )
         );
 
-        // climber.setDefaultCommand(
-        //     ClimberCommands.manualMove(climber, () -> -joystick.getRightY())
-        // );
+        climber.setDefaultCommand(
+            ClimberCommands.manualMove(climber, () -> -joystick.getRightY())
+        );
 
         joystick.leftBumper().whileTrue(
             new AutoAimAndShootCommand(drivetrain, shooter, vision)
@@ -171,70 +172,58 @@ public class RobotContainer {
         joystick.x().onTrue(Commands.runOnce(intake::togglePivot, intake));
         joystick.y().onTrue(Commands.runOnce(() -> inverted = !inverted));
 
-
         // Idle while the robot is disabled. This ensures the configured
         // neutral mode is applied to the drive motors while disabled.
         final var idle = new SwerveRequest.Idle();
         RobotModeTriggers.disabled().whileTrue(
             drivetrain.applyRequest(() -> idle).ignoringDisable(true)
-        );
+        );      
+        //    // joystick.a().whileTrue(drivetrain.applyRequest(() -> brake));
+        //    // joystick.b().whileTrue(drivetrain.applyRequest(() ->
+        //    //     point.withModuleDirection(new Rotation2d(-joystick.getLeftY(), -joystick.getLeftX()))
+        //    // ));
+        //    joystick.a().onTrue(ClimberCommands.retractToBottom(climber));
+        //    joystick.b().onTrue(ClimberCommands.extendToTop(climber));   
+        //    // Run SysId routines when holding back/start and X/Y.
+        //    // Note that each routine should be run exactly once in a single log.
+        //    joystick.back().and(joystick.y()).whileTrue(drivetrain.sysIdDynamic(Direction.kForward));
+        //    joystick.back().and(joystick.x()).whileTrue(drivetrain.sysIdDynamic(Direction.kReverse));
+        //    joystick.start().and(joystick.y()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kForward));
+        //    joystick.start().and(joystick.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));   
+        //    // Reset the field-centric heading on y press.
+        //    // joystick.y().onTrue((drivetrain.runOnce(drivetrain::seedFieldCentric)));      
+        //    // --- INTAKE BINDINGS ---
+                  
+        //    // X Button: Toggle Intake
+        //    joystick.x().onTrue(Commands.runOnce(intake::togglePivot, intake));      
+        //    // Left Bumper: Run Roller
+        //    joystick.leftBumper().toggleOnTrue(Commands.startEnd(intake::runRollers, intake::stopRollers, intake));      
+        //    // Left Trigger: Oscillate/Shake Intake (Pivot Bobbing)
+        //    // Runs as long as trigger is held past 50%
+        //    joystick.leftTrigger(0.5).whileTrue(new IntakeOscillateCommand(intake));     
+        //    // 1. Right Bumper (Button on top towards user) -> Run Feeder
+        //    joystick.rightBumper()
+        //        .whileTrue(ShooterCommands.runFeeder(shooter));      
+        //    // 2. POV Right (D-Pad Right) -> Increase Flywheel Speed
+        //    // We use onTrue so you have to click it to step up (prevents zooming to max speed instantly)
+        //    joystick.povRight()
+        //        .onTrue(ShooterCommands.increaseFlywheelSpeed(shooter));     
+        //    // 3. POV Left (D-Pad Left) -> Decrease Flywheel Speed
+        //    joystick.povLeft()
+        //        .onTrue(ShooterCommands.decreaseFlywheelSpeed(shooter));     
+        //    // 4. POV Up (D-Pad Up) -> Move Hood Up
+        //    // We use whileTrue so it moves smoothly while holding the button
+        //    joystick.povUp()
+        //        .whileTrue(ShooterCommands.moveHoodUp(shooter));     
+        //    // 5. POV Down (D-Pad Down) -> Move Hood Down
+        //    joystick.povDown()
+        //        .whileTrue(ShooterCommands.moveHoodDown(shooter));
 
-    //     // joystick.a().whileTrue(drivetrain.applyRequest(() -> brake));
-    //     // joystick.b().whileTrue(drivetrain.applyRequest(() ->
-    //     //     point.withModuleDirection(new Rotation2d(-joystick.getLeftY(), -joystick.getLeftX()))
-    //     // ));
-    //     joystick.a().onTrue(ClimberCommands.retractToBottom(climber));
-    //     joystick.b().onTrue(ClimberCommands.extendToTop(climber));
+        //     drivetrain.registerTelemetry(logger::telemeterize);
 
-    //     // Run SysId routines when holding back/start and X/Y.
-    //     // Note that each routine should be run exactly once in a single log.
-    //     joystick.back().and(joystick.y()).whileTrue(drivetrain.sysIdDynamic(Direction.kForward));
-    //     joystick.back().and(joystick.x()).whileTrue(drivetrain.sysIdDynamic(Direction.kReverse));
-    //     joystick.start().and(joystick.y()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kForward));
-    //     joystick.start().and(joystick.x()).whileTrue(drivetrain.sysIdQuasistatic(Direction.kReverse));
-
-    //     // Reset the field-centric heading on y press.
-    //     // joystick.y().onTrue((drivetrain.runOnce(drivetrain::seedFieldCentric)));
-
-    //     // --- INTAKE BINDINGS ---
-        
-    //     // X Button: Toggle Intake
-    //     joystick.x().onTrue(Commands.runOnce(intake::togglePivot, intake));
-
-    //     // Left Bumper: Run Roller
-    //     joystick.leftBumper().toggleOnTrue(Commands.startEnd(intake::runRollers, intake::stopRollers, intake));
-
-    //     // Left Trigger: Oscillate/Shake Intake (Pivot Bobbing)
-    //     // Runs as long as trigger is held past 50%
-    //     joystick.leftTrigger(0.5).whileTrue(new IntakeOscillateCommand(intake));
-
-    //     // 1. Right Bumper (Button on top towards user) -> Run Feeder
-    //     joystick.rightBumper()
-    //         .whileTrue(ShooterCommands.runFeeder(shooter));
-
-    //     // 2. POV Right (D-Pad Right) -> Increase Flywheel Speed
-    //     // We use onTrue so you have to click it to step up (prevents zooming to max speed instantly)
-    //     joystick.povRight()
-    //         .onTrue(ShooterCommands.increaseFlywheelSpeed(shooter));
-
-    //     // 3. POV Left (D-Pad Left) -> Decrease Flywheel Speed
-    //     joystick.povLeft()
-    //         .onTrue(ShooterCommands.decreaseFlywheelSpeed(shooter));
-
-    //     // 4. POV Up (D-Pad Up) -> Move Hood Up
-    //     // We use whileTrue so it moves smoothly while holding the button
-    //     joystick.povUp()
-    //         .whileTrue(ShooterCommands.moveHoodUp(shooter));
-
-    //     // 5. POV Down (D-Pad Down) -> Move Hood Down
-    //     joystick.povDown()
-    //         .whileTrue(ShooterCommands.moveHoodDown(shooter));
-
-            drivetrain.registerTelemetry(logger::telemeterize);
-
-    //     joystick.rightTrigger(0.5).whileTrue(
-    //         new AutoAimAndShootCommand(drivetrain, shooter, vision)
-    //     );
+        // joystick.rightTrigger(0.5).whileTrue(
+        //     new AutoAimAndShootCommand(drivetrain, shooter, vision)
+        // );
     }
 
     public Command getPassCommand() {
@@ -243,9 +232,9 @@ public class RobotContainer {
                 shooter.setFlywheelVelocity(70.0*0.8);
                 // shooter.setFlywheelVelocity(20.0);
 
-                shooter.setHoodDistanceMm(110.0);
+                shooter.setHoodState(HoodPosition.HIGH);
             }, shooter),
-            Commands.waitUntil(() -> shooter.isHoodAtDistance(15) && shooter.isFlywheelAtSpeed(5)),
+            Commands.waitUntil(() -> shooter.isHoodAtPosition(1) && shooter.isFlywheelAtSpeed(5)),
             Commands.parallel(
                 // ShooterCommands.runFeeder(shooter),
                 shooter.run(() -> shooter.runFeeder(100)), 
@@ -256,7 +245,7 @@ public class RobotContainer {
             shooter.setFlywheelVelocity(50.0);
             // shooter.setFlywheelVelocity(20.0);
 
-            shooter.setHoodDistanceMm(82.0);
+            shooter.setHoodState(HoodPosition.LOW);
         });
     }
 

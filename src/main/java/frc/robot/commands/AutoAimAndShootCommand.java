@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.CommandSwerveDrivetrain;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.VisionSubsystem;
+import frc.robot.subsystems.ShooterSubsystem.HoodPosition;
 
 public class AutoAimAndShootCommand extends Command {
 
@@ -53,9 +54,9 @@ public class AutoAimAndShootCommand extends Command {
         // 2.0m -> 55 RPS, 82 Hood
         // 2.5m -> 50 RPS, 94 Hood
 
-        m_rpmMap.put(1.5, 49.0*1.12);
-        m_rpmMap.put(2.0, 56.0*1.02);
-        m_rpmMap.put(2.5, 58.0*0.95);
+        m_rpmMap.put(1.5, 45.0);
+        m_rpmMap.put(2.1, 60.0);
+        // m_rpmMap.put(2.5, 58.0*0.95);
         
         // --- EXTRAPOLATION (Guessing to fill gaps) ---
         // Close range (Manual shot equivalent?)
@@ -67,8 +68,8 @@ public class AutoAimAndShootCommand extends Command {
 
         // m_hoodMap.put(1.0, 70.0);
         m_hoodMap.put(1.5,82.0);
-        m_hoodMap.put(2.0, 84.0);
-        m_hoodMap.put(2.5, 92.0);
+        m_hoodMap.put(2.0, 82.0);
+        // m_hoodMap.put(2.5, 82.0);
         // m_hoodMap.put(3.0, 105.0);
         // m_hoodMap.put(4.0, 120.0);
     }
@@ -107,7 +108,8 @@ public class AutoAimAndShootCommand extends Command {
         double targetHood = m_hoodMap.get(safeDist);
 
         m_shooter.setFlywheelVelocity(targetRPM);
-        m_shooter.setHoodDistanceMm(targetHood);
+        // m_shooter.setHoodDistanceMm(targetHood);
+        m_shooter.setHoodState(HoodPosition.LOW);
 
         // 4. CALCULATE TURNING
         double rotationSpeed = m_turnPID.calculate(tx, 0);
@@ -127,7 +129,7 @@ public class AutoAimAndShootCommand extends Command {
         // 6. CHECK READY STATE
         boolean isAimed = m_turnPID.atSetpoint();
         boolean isSpedUp = m_shooter.isFlywheelAtSpeed(3.0); // 3 RPS tolerance
-        boolean isHooded = m_shooter.isHoodAtDistance(3.0); // 2mm tolerance
+        boolean isHooded = m_shooter.isHoodAtPosition(0.5);
 
         SmartDashboard.putBoolean("AutoAim/Ready: Aim", isAimed);
         SmartDashboard.putBoolean("AutoAim/Ready: RPM", isSpedUp);
