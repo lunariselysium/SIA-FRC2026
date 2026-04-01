@@ -146,29 +146,29 @@ public class RobotContainer {
             ClimberCommands.manualMove(climber, () -> -joystick.getRightY())
         );
 
-        joystick.leftBumper().whileTrue(
-            new AutoAimAndShootCommand(drivetrain, shooter, vision)
-            .alongWith(
-                new SequentialCommandGroup(
-                    new WaitCommand(1.5),
-                    new IntakeOscillateCommand(intake)
-                )
-            )
-        );
-        joystick.leftTrigger(0.5).whileTrue(getPassCommand());
-        joystick.rightBumper().whileTrue(
-            Commands.startEnd(
-                intake::runRollers,   // Runs when button is pressed
-                intake::stopRollers,  // Runs automatically when button is released
-                intake                // Requires the intake subsystem
-            )
-        );
-        joystick.rightTrigger(0.5).whileTrue(
-            Commands.startEnd(intake::runRollersReverse, intake::stopRollers, intake)
-            .alongWith(
-                ShooterCommands.runFeederReverse(shooter)
-            )
-        );
+        // joystick.leftBumper().whileTrue(
+        //     new AutoAimAndShootCommand(drivetrain, shooter, vision)
+        //     .alongWith(
+        //         new SequentialCommandGroup(
+        //             new WaitCommand(1.5),
+        //             new IntakeOscillateCommand(intake)
+        //         )
+        //     )
+        // );
+        // joystick.leftTrigger(0.5).whileTrue(getPassCommand());
+        // joystick.rightBumper().whileTrue(
+        //     Commands.startEnd(
+        //         intake::runRollers,   // Runs when button is pressed
+        //         intake::stopRollers,  // Runs automatically when button is released
+        //         intake                // Requires the intake subsystem
+        //     )
+        // );
+        // joystick.rightTrigger(0.5).whileTrue(
+        //     Commands.startEnd(intake::runRollersReverse, intake::stopRollers, intake)
+        //     .alongWith(
+        //         ShooterCommands.runFeederReverse(shooter)
+        //     )
+        // );
         joystick.x().onTrue(Commands.runOnce(intake::togglePivot, intake));
         joystick.y().onTrue(Commands.runOnce(() -> inverted = !inverted));
 
@@ -201,9 +201,9 @@ public class RobotContainer {
         //    // Left Trigger: Oscillate/Shake Intake (Pivot Bobbing)
         //    // Runs as long as trigger is held past 50%
         //    joystick.leftTrigger(0.5).whileTrue(new IntakeOscillateCommand(intake));     
-        //    // 1. Right Bumper (Button on top towards user) -> Run Feeder
-        //    joystick.rightBumper()
-        //        .whileTrue(ShooterCommands.runFeeder(shooter));      
+           // 1. Right Bumper (Button on top towards user) -> Run Feeder
+           joystick.rightBumper()
+               .whileTrue(ShooterCommands.runFeeder(shooter));      
         //    // 2. POV Right (D-Pad Right) -> Increase Flywheel Speed
         //    // We use onTrue so you have to click it to step up (prevents zooming to max speed instantly)
         //    joystick.povRight()

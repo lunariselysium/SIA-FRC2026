@@ -58,9 +58,14 @@ public class IntakeSubsystem extends SubsystemBase {
         TalonFXConfiguration configs = new TalonFXConfiguration();
         
         // Pivot PID
-        configs.Slot0.kP = 0.6;
+        configs.Slot0.kP = 0.9;
         configs.Slot0.kI = 0.05;
         configs.Slot0.kD = 0.1;
+
+        // Deploy pivot PID
+        configs.Slot1.kP = 0.2;
+        configs.Slot1.kI = 0.05;
+        configs.Slot1.kD = 0.1;
         
         configs.Voltage.PeakForwardVoltage = 8;
         configs.Voltage.PeakReverseVoltage = -8;
@@ -89,7 +94,7 @@ public class IntakeSubsystem extends SubsystemBase {
     // --- Pivot Methods ---
     public void setPivotPosition(double position) {
         m_targetPivotPosition = position;
-        m_pivotMotor.setControl(m_pivotControl.withPosition(position));
+        m_pivotMotor.setControl(m_pivotControl.withPosition(position).withSlot(0));
     }
 
     public void pivotUp() {
@@ -98,6 +103,11 @@ public class IntakeSubsystem extends SubsystemBase {
 
     public void pivotDown() {
         setPivotPosition(m_posDown);
+    }
+
+    public void pivotDownSlow() {
+        m_targetPivotPosition = m_posDown;
+        m_pivotMotor.setControl(m_pivotControl.withPosition(m_posDown).withSlot(1));
     }
 
     public void pivotOscillate() {
@@ -112,7 +122,7 @@ public class IntakeSubsystem extends SubsystemBase {
         // If we are currently trying to go Down (or Oscillate), go Up.
         // If we are Up, go Down.
         if (Math.abs(m_targetPivotPosition - m_posUp) < 0.1) {
-            pivotDown();
+            pivotDownSlow();
         } else {
             pivotUp();
         }
